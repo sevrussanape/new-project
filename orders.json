@@ -1,0 +1,46 @@
+[
+  {
+    "customer": {
+      "name": "dgg",
+      "email": "fdgdfgfdg@gmail.com",
+      "phone": "234324326",
+      "address": "dfgdgdfgdf"
+    },
+    "items": [
+      {
+        "name": "Tasty Sweets",
+        "price": 5,
+        "image": "file:///C:/Users/kashy/OneDrive/Desktop/desktop/work/food%20website/images/p-3.jpg",
+        "qty": 1
+      }
+    ],
+    "total": 5,
+    "id": 1766591003259,
+    "date": "24/12/2025, 9:13:23 pm"
+  },
+  {
+    "customer": {
+      "name": "kldbkflbf",
+      "email": "ghfgfdf@fghgfhj",
+      "phone": "45656546",
+      "address": "cgfghh"
+    },
+    "items": [
+      {
+        "name": "Tasty Sweets",
+        "price": 5,
+        "image": "file:///C:/Users/kashy/OneDrive/Desktop/desktop/work/food%20website/images/p-3.jpg",
+        "qty": 6
+      },
+      {
+        "name": "Tasty Cakes",
+        "price": 5,
+        "image": "file:///C:/Users/kashy/OneDrive/Desktop/desktop/work/food%20website/images/p-2.jpg",
+        "qty": 3
+      }
+    ],
+    "total": 45,
+    "id": 1766591128972,
+    "date": "24/12/2025, 9:15:28 pm"
+  }
+]

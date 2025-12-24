@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Orders</title>
+    <!-- Import Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --red:#ff3838;
+            --black:#333;
+            --light-color:#666;
+            --bg-color:#f7f7f7;
+            --white:#fff;
+            --shadow:0 .5rem 1rem rgba(0,0,0,.1);
+            --border:.1rem solid rgba(0,0,0,.1);
+        }
+
+        * { font-family: 'Nunito', sans-serif; margin: 0; padding: 0; box-sizing: border-box; text-decoration: none; outline: none; border: none; transition: all .2s linear; }
+        
+        body { 
+            background: var(--bg-color); 
+            padding: 2rem; 
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: var(--border);
+        }
+
+        header h1 { 
+            color: var(--black); 
+            font-size: 3.5rem; 
+            text-transform: uppercase;
+        }
+
+        header span { color: var(--red); }
+
+        .btn-refresh {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: .8rem 3rem;
+            font-size: 1.7rem;
+            color: var(--red);
+            border: .2rem solid var(--red);
+            border-radius: .5rem;
+            cursor: pointer;
+            background: none;
+        }
+
+        .btn-refresh:hover {
+            background: var(--red);
+            color: var(--white);
+        }
+
+        #orders-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(30rem, 1fr));
+            gap: 2rem;
+        }
+
+        .order-card {
+            background: var(--white);
+            border-radius: .5rem;
+            box-shadow: var(--shadow);
+            border: var(--border);
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .order-card:hover { transform: translateY(-.5rem); }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: var(--border);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .order-id { font-size: 1.5rem; color: var(--black); font-weight: bold; }
+        .order-date { font-size: 1.3rem; color: var(--light-color); }
+
+        .customer-details h3 { font-size: 1.7rem; color: var(--black); margin-bottom: .5rem; }
+        .customer-details p { font-size: 1.4rem; color: var(--light-color); line-height: 1.8; }
+        .customer-details strong { color: var(--black); }
+
+        .order-items {
+            margin-top: 1.5rem;
+            background: #fafafa;
+            padding: 1rem;
+            border-radius: .5rem;
+        }
+
+        .order-items h4 { font-size: 1.5rem; color: var(--black); margin-bottom: 1rem; border-bottom: var(--border); padding-bottom: .5rem; }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.4rem;
+            color: var(--light-color);
+            margin-bottom: .5rem;
+        }
+
+        .total-price {
+            margin-top: 1.5rem;
+            text-align: right;
+            font-size: 2rem;
+            color: var(--black);
+            font-weight: bold;
+        }
+
+        .total-price span { color: var(--red); }
+
+        .no-orders { text-align: center; font-size: 2rem; color: var(--light-color); width: 100%; grid-column: 1 / -1; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Admin <span>Panel</span></h1>
+        <button class="btn-refresh" onclick="fetchOrders()">Refresh Orders</button>
+    </header>
+
+    <div id="orders-container">
+        <!-- Orders will be loaded here -->
+        <p class="no-orders">Loading...</p>
+    </div>
+
+    <script>
+        async function fetchOrders() {
+            const container = document.getElementById('orders-container');
+            const btn = document.querySelector('.btn-refresh');
+            btn.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('http://localhost:3000/orders');
+                const orders = await response.json();
+
+                container.innerHTML = '';
+                btn.textContent = 'Refresh Orders';
+
+                if(orders.length === 0) {
+                    container.innerHTML = '<p class="no-orders">No active orders found.</p>';
+                    return;
+                }
+
+                orders.reverse().forEach(order => {
+                    let itemsHtml = order.items.map(item => `
+                        <div class="item">
+                            <span>${item.qty}x ${item.name}</span>
+                            <span>₹${(item.price * item.qty).toFixed(2)}</span>
+                        </div>
+                    `).join('');
+
+                    let html = `
+                        <div class="order-card">
+                            <div class="order-header">
+                                <span class="order-id">#${order.id}</span>
+                                <span class="order-date">${order.date}</span>
+                            </div>
+                            <div class="customer-details">
+                                <h3>Customer Info</h3>
+                                <p><strong>Name:</strong> ${order.customer.name}</p>
+                                <p><strong>Email:</strong> ${order.customer.email}</p>
+                                <p><strong>Phone:</strong> ${order.customer.phone}</p>
+                                <p><strong>Address:</strong> ${order.customer.address}</p>
+                            </div>
+                            <div class="order-items">
+                                <h4>Order Items</h4>
+                                ${itemsHtml}
+                            </div>
+                            <div class="total-price">
+                                Total: <span>₹${parseFloat(order.total).toFixed(2)}</span>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += html;
+                });
+
+            } catch (error) {
+                container.innerHTML = '<p class="no-orders" style="color:var(--red)">Backend Not Connected!</p>';
+                btn.textContent = 'Retry';
+            }
+        }
+
+        fetchOrders();
+    </script>
+
+</body>
+</html>

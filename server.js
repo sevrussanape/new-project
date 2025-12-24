@@ -8,6 +8,15 @@ const PORT = 3000;
 
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.static(__dirname)); // Serve static files (HTML, CSS, JS, Images)
+
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
+
+app.get('/admin', (req, res) => {
+    res.sendFile(__dirname + '/admin.html');
+});
 
 const ORDERS_FILE = 'orders.json';
 

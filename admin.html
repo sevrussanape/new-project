@@ -140,7 +140,7 @@
             btn.textContent = 'Loading...';
             
             try {
-                const response = await fetch('http://localhost:3000/orders');
+                const response = await fetch('/orders');
                 const orders = await response.json();
 
                 container.innerHTML = '';

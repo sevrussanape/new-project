@@ -53,7 +53,7 @@ function updateCartUI() {
 
   if (cart.length === 0) {
     cartContainer.innerHTML = '<p class="empty-cart-msg">Your cart is empty</p>';
-    totalSpan.innerText = '$0.00';
+    totalSpan.innerText = '₹0.00';
     return;
   }
 
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // format likely "$5 - $20", we'll just take the first number for simplicity
       // or we can generate a random price between the range. let's just parse $5.
       let price = parseFloat(priceText.replace(/[^0-9.-]+/g, ""));
-      if (isNaN(price)) price = 10; // default fallout
+      if (isNaN(price)) price = 100; // default fallout
 
       addToCart(name, price, image);
     });
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       let name = "Delicious Food";
       let image = "images/home-img.png";
-      let price = 15; // default
+      let price = 150; // default
 
       if (parent.classList.contains('content') && container.classList.contains('box')) {
         // Gallery

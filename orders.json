@@ -42,5 +42,24 @@
     "total": 45,
     "id": 1766591128972,
     "date": "24/12/2025, 9:15:28 pm"
+  },
+  {
+    "customer": {
+      "name": "kjdfkd",
+      "email": "jkadfhkjafd@gamil.com",
+      "phone": "9287534893",
+      "address": "idafhdakjdgd"
+    },
+    "items": [
+      {
+        "name": "Food Made With Love",
+        "price": 15,
+        "image": "file:///C:/Users/kashy/OneDrive/Desktop/desktop/work/food%20website/images/home-img.png",
+        "qty": 11
+      }
+    ],
+    "total": 165,
+    "id": 1767024013455,
+    "date": "29/12/2025, 9:30:13 pm"
   }
 ]

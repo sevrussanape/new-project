@@ -139,8 +139,17 @@
             const btn = document.querySelector('.btn-refresh');
             btn.textContent = 'Loading...';
             
+            // If opened as a local file, try to connect to localhost:3000
+            const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
+            
             try {
-                const response = await fetch('/orders');
+                console.log(`Fetching orders from: ${baseUrl}/orders`);
+                const response = await fetch(`${baseUrl}/orders`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const orders = await response.json();
 
                 container.innerHTML = '';
@@ -185,7 +194,8 @@
                 });
 
             } catch (error) {
-                container.innerHTML = '<p class="no-orders" style="color:var(--red)">Backend Not Connected!</p>';
+                console.error('Fetch error:', error);
+                container.innerHTML = `<p class="no-orders" style="color:var(--red)">Backend Not Connected!</p><p style="text-align:center; font-size:1.2rem; color:#666;">Error: ${error.message}<br>Make sure the server is running on http://localhost:3000</p>`;
                 btn.textContent = 'Retry';
             }
         }

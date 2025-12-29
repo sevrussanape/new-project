@@ -179,7 +179,8 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       try {
-        let response = await fetch('/order', {
+        const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
+        let response = await fetch(`${baseUrl}/order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(orderData)

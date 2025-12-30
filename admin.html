@@ -128,6 +128,10 @@
         <button class="btn-refresh" onclick="fetchOrders()">Refresh Orders</button>
     </header>
 
+    <div style="background: #fff3cd; color: #856404; padding: 1rem; margin-bottom: 2rem; border-radius: .5rem; font-size: 1.4rem; text-align: center; border: 1px solid #ffeeba;">
+        <strong>Note:</strong> On Netlify, orders are stored in temporary memory and will be cleared periodically. Use a database for permanent storage.
+    </div>
+
     <div id="orders-container">
         <!-- Orders will be loaded here -->
         <p class="no-orders">Loading...</p>

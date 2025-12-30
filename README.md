@@ -2,7 +2,7 @@
 
 A modern, responsive, and fully functional food e-commerce website with a custom admin panel and Node.js backend.
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/sevrussanape/new-project)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/sevrussanape/new-project&branch=main)
 
 ---
 

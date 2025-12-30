@@ -140,7 +140,7 @@
             btn.textContent = 'Loading...';
             
             // If opened as a local file, try to connect to localhost:3000
-            const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
+            const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3000' : '/api';
             
             try {
                 console.log(`Fetching orders from: ${baseUrl}/orders`);

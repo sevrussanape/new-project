@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       try {
-        const baseUrl = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
+        const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3000' : '/api';
         let response = await fetch(`${baseUrl}/order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

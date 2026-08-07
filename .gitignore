@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+env/
+*.egg-info/
+dist/
+build/
+models/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+.env
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build outputs
+frontend/build/
+frontend/.env.local

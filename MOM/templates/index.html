@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Minute of Meeting Generator</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="logo">
+                <span class="logo-icon">🔒</span>
+                <h1>Local AI Secretary</h1>
+            </div>
+            <p class="subtitle">100% Private & Unlimited. No internet, no limits.</p>
+        </header>
+
+        <main>
+            <div class="upload-card glass">
+                <div id="drop-zone" class="drop-zone">
+                    <div class="drop-zone-content">
+                        <div class="icon-wrapper">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="upload-icon">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </div>
+                        <h3>Upload Meeting Recording</h3>
+                        <p>Drag & drop your video or audio file here</p>
+                        <span class="or-divider">or</span>
+                        <label for="file-input" class="btn btn-primary">Browse Files</label>
+                        <input type="file" id="file-input" accept="video/*,audio/*" hidden>
+                    </div>
+                </div>
+
+                <div id="status-container" class="status-container hidden">
+                    <div class="processing-info">
+                        <div class="step-label" id="current-step">Starting...</div>
+                        <div class="progress-wrapper">
+                            <div class="progress-bar">
+                                <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+                            </div>
+                            <span id="progress-percent">0%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="loading-animation">
+                        <div class="pulse"></div>
+                    </div>
+                </div>
+
+                <div id="result-container" class="result-container hidden">
+                    <div class="success-icon">✅</div>
+                    <h3>MoM Ready!</h3>
+                    <p>Your professional minutes have been generated.</p>
+                    <a id="download-btn" href="#" class="btn btn-success">Download PDF</a>
+                    <button id="reset-btn" class="btn btn-outline">Process Another</button>
+                </div>
+
+                <div id="error-container" class="error-container hidden">
+                    <div class="error-icon">❌</div>
+                    <h3>Something went wrong</h3>
+                    <p id="error-message">Error details go here...</p>
+                    <button id="retry-btn" class="btn btn-outline">Try Again</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Local AI Secretary • Powered by Faster-Whisper & Ollama</p>
+        </footer>
+    </div>
+
+    <script src="../static/js/app.js"></script>
+</body>
+</html>

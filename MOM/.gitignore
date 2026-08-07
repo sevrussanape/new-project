@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Project Specific
+uploads/*
+output/*
+!uploads/.gitkeep
+!output/.gitkeep
+debug.log
+check_local.py
+manual_debug.py
+test_api.py
+test_app_logic.py
+
+# Models
+*.bin
+*.pt

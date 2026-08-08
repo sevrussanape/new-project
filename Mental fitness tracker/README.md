@@ -75,4 +75,4 @@ After training, metrics are saved to `models/metrics.json`:
 
 ## Author
 
-Deepanshukashyap8835 — Data Scientist
+Deepanshu — Data Scientist

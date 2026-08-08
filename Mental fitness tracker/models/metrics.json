@@ -1,0 +1,24 @@
+{
+  "best_params": {
+    "model__max_depth": 18,
+    "model__min_samples_leaf": 1,
+    "model__n_estimators": 200
+  },
+  "r2_score": 0.8407,
+  "mae": 3.5966,
+  "rmse": 4.6521,
+  "cv_mae_mean": 3.6262,
+  "cv_mae_std": 0.1266,
+  "feature_columns": [
+    "sleep_hours",
+    "exercise_minutes",
+    "stress_level",
+    "mood_score",
+    "social_hours",
+    "screen_time_hours",
+    "meditation_minutes",
+    "water_glasses"
+  ],
+  "target_column": "mental_fitness_score",
+  "gradient_boosting_mae": 2.8803
+}

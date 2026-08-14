@@ -1,86 +1,331 @@
-# 🔒 Local AI Secretary: 100% Private MoM Generator
+# 🔒 Local AI Secretary — 100% Local MoM Generator
 
-Convert your meeting recordings (Video/Audio) into professional, formatted PDF Minutes of Meeting (MoM) using **100% Local AI**. 
+Turn meeting audio/video into professional **Minutes of Meeting (MoM)** PDFs using local AI.
 
-**Zero Cloud. Zero Costs. Zero Limits.**
-
----
+The MOM project is now designed for **local/offline AI processing**. There is no cloud Gemini version and no API-key setup in this project.
 
 ## ✨ Features
-- **100% Private**: Your audio never leaves your machine.
-- **Faster-Whisper**: High-performance local transcription.
-- **Ollama Integration**: Uses `llama3.2:1b` for intelligent summarization.
-- **Professional PDF**: Beautifully formatted reports using `xhtml2pdf`.
-- **Modern Web UI**: Glassmorphism design with real-time progress tracking.
+
+- 🎙️ Audio and video meeting uploads
+- 🗣️ Local Faster-Whisper transcription
+- 🧠 Local Qwen3 through Ollama
+- 🖥️ Automatic RAM / GPU / VRAM detection
+- ⚙️ Automatic Qwen model recommendation
+- 📥 Automatic Qwen download when the recommended model is missing
+- 🎬 FFmpeg discovery through the system PATH
+- 📝 Professional Minutes of Meeting generation
+- 📄 PDF export
+- 📊 Real-time processing progress
+- 🌑 Modern responsive local web interface
+- 🔒 Recordings and generated content remain on the computer
+- 🌐 Runs at `http://127.0.0.1:5000`
 
 ---
 
-## 🛠️ Prerequisites
+# 🚀 HOW TO RUN — START HERE
 
-Before running the project, you must install the following tools:
+## 1. Install Python
 
-### 1. Python 3.10+
-Download and install from [python.org](https://www.python.org/downloads/). Ensure you check **"Add Python to PATH"** during installation.
+Install **Python 3.11 or newer** and enable **Add Python to PATH** during installation.
 
-### 2. FFmpeg (Required for audio processing)
-Open PowerShell as Administrator and run:
+Check it:
+
+```powershell
+python --version
+```
+
+## 2. Install Ollama
+
+Install Ollama:
+
+https://ollama.com/download
+
+Check it:
+
+```powershell
+ollama --version
+```
+
+You do **not** need a Gemini, OpenAI, Claude, or other cloud API key.
+
+## 3. Install FFmpeg
+
+FFmpeg is used to extract audio from video recordings.
+
+On Windows PowerShell:
+
 ```powershell
 winget install Gyan.FFmpeg
 ```
 
-### 3. Ollama (The AI Runner)
-1. Download from **[ollama.com](https://ollama.com/download)**.
-2. Once installed, open your terminal and pull the brain for the app:
+After installation, reopen your terminal.
+
+Check it:
+
 ```powershell
-ollama pull llama3.2:1b
+ffmpeg -version
+```
+
+## 4. First thing to click: `setup.bat`
+
+Open the `MOM` folder and double-click:
+
+```text
+setup.bat
+```
+
+**Do not run `app.py` first.**
+
+The setup script:
+
+```text
+setup.bat
+   ↓
+Create Python virtual environment
+   ↓
+Install dependencies
+   ↓
+Detect RAM
+   ↓
+Detect NVIDIA GPU / VRAM
+   ↓
+Recommend Qwen3 model
+   ↓
+Prepare local AI environment
+```
+
+The recommended model can be downloaded automatically when the application starts if it is not already installed.
+
+## 5. Start the website
+
+After setup completes, activate the environment if needed:
+
+```powershell
+.venv\Scripts\activate
+```
+
+Then run:
+
+```powershell
+python app.py
+```
+
+Open:
+
+```text
+http://127.0.0.1:5000
+```
+
+## 6. Use MOM
+
+```text
+Upload meeting recording
+        ↓
+Hardware detection
+        ↓
+Recommended Qwen model
+        ↓
+Local Whisper transcription
+        ↓
+Local Qwen analysis
+        ↓
+Professional MoM
+        ↓
+PDF download
 ```
 
 ---
 
-## 🚀 Installation & Setup
+# 🧠 Automatic Qwen model selection
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/local-ai-secretary.git
-   cd local-ai-secretary
-   git checkout ai-project
-   ```
+MOM checks your computer before selecting a model.
 
-2. **Install Dependencies**:
-   ```bash
-   pip install flask faster-whisper ollama markdown xhtml2pdf
-   ```
+Current recommendations are approximately:
 
-3. **Run the Application**:
-   ```bash
-   python app.py
-   ```
+| Model | Approx. size | Target |
+|---|---:|---|
+| `qwen3:4b` | ~2.6 GB | Low-resource / CPU systems |
+| `qwen3:8b` | ~5.2 GB | Balanced systems |
+| `qwen3:14b` | ~9.3 GB | Higher-quality systems |
+| `qwen3:30b` | ~19 GB | High-end systems |
 
-4. **Access the App**:
-   Open **[http://127.0.0.1:5000](http://127.0.0.1:5000)** in your browser.
+The actual model size can vary by Ollama build.
+
+The model is **not stored in GitHub**. It is downloaded to the user's computer when needed.
 
 ---
 
-## 🌐 Online Version (`mom_online`)
+# 🖥️ Hardware detection
 
-The `mom_online` directory contains a version optimized for **Cloud Deployment** (e.g., Render, Railway, Heroku). 
+The application reports:
 
-- **Purpose**: Use this version if you want to host the app online.
-- **AI**: Uses Gemini 1.5 Flash for both transcription and analysis (no local dependencies required).
-- **Setup**:
-  1. Add your `GEMINI_API_KEY` to `mom_online/app.py`.
-  2. Deploy using the included `Procfile` and `requirements.txt`.
+- Total RAM
+- Free disk space
+- NVIDIA GPU name when available
+- NVIDIA VRAM when available
+- Recommended Qwen model
+- Installed Ollama models
 
----
-
-## 📂 Project Structure
-- `app.py`: The heart of the application (Flask + AI Logic).
-- `templates/`: HTML structure.
-- `static/`: CSS styling and JavaScript for the UI.
-- `uploads/`: Temporary storage for your uploaded files.
-- `output/`: Where your finished PDFs live.
+If no NVIDIA GPU is available, MOM can fall back to a smaller Qwen model suitable for the available RAM.
 
 ---
 
-## ⚖️ License
-MIT License - Feel free to use, modify, and share!
+# 🔒 Privacy and offline operation
+
+The core processing pipeline is local:
+
+```text
+Meeting file
+    ↓
+Local FFmpeg
+    ↓
+Local Faster-Whisper
+    ↓
+Local transcript
+    ↓
+Local Qwen3 via Ollama
+    ↓
+Local PDF
+```
+
+Your recording is not uploaded to Gemini or another cloud AI service.
+
+### Internet is only needed initially for things such as:
+
+- Installing Python packages
+- Installing/downloading Ollama
+- Downloading the selected Qwen model
+- Downloading Whisper model files if not already cached
+
+After those components are installed, the core meeting-processing workflow can operate without cloud AI.
+
+---
+
+# 🎙️ Supported recordings
+
+The web interface accepts common audio/video formats such as:
+
+```text
+MP4
+MOV
+MKV
+WEBM
+MP3
+WAV
+M4A
+```
+
+Video audio is extracted with FFmpeg before transcription when FFmpeg is available.
+
+---
+
+# 📝 Minutes generation
+
+The local Qwen prompt asks for professional meeting minutes containing information such as:
+
+- Executive Summary
+- Attendees when supported by the transcript
+- Key Discussion Points
+- Decisions Made
+- Action Items
+- Owner
+- Deadline
+- Risks
+- Next Steps
+
+The model is instructed not to invent unsupported facts.
+
+---
+
+# 🌐 Website
+
+The MOM website was redesigned around a modern local-AI experience:
+
+- Dark premium interface
+- Local AI badge
+- Large hero section
+- Recording upload card
+- Hardware information
+- Recommended Qwen model
+- Live progress bar
+- Processing states
+- PDF result screen
+- Responsive layout
+
+The website is served locally by Flask.
+
+---
+
+# 📁 Project structure
+
+```text
+MOM/
+│
+├── app.py
+├── hardware.py
+├── requirements.txt
+├── setup.bat
+├── templates/
+│   └── index.html
+├── uploads/
+├── output/
+└── README.md
+```
+
+---
+
+# 🧹 Cloud/API version removed
+
+The old `mom_online` Gemini application has been removed from this project.
+
+There is **no supported online Gemini workflow** in the current MOM project.
+
+You should not need to enter:
+
+```text
+GEMINI_API_KEY
+```
+
+or any other cloud AI API key to run MOM.
+
+---
+
+# ⚠️ Troubleshooting
+
+### `python` is not recognized
+
+Reinstall Python and enable **Add Python to PATH**. Then open a new terminal.
+
+### `ollama` is not recognized
+
+Install Ollama and restart the terminal.
+
+### Qwen download fails
+
+Make sure Ollama is installed and running. Check:
+
+```powershell
+ollama list
+```
+
+### FFmpeg is not found
+
+Install FFmpeg and ensure `ffmpeg` works from a new terminal:
+
+```powershell
+ffmpeg -version
+```
+
+### NVIDIA GPU is not detected
+
+MOM uses `nvidia-smi` for NVIDIA detection. If it is unavailable, the application falls back to RAM-based model selection.
+
+### Whisper is slow
+
+Local transcription speed depends heavily on CPU/GPU hardware and the Whisper model size.
+
+---
+
+# ⚖️ License
+
+MIT License — feel free to use, modify, and share.

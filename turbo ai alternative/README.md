@@ -2,8 +2,6 @@
 
 A privacy-first local AI study workspace inspired by modern AI learning platforms. StudyAI processes your study material on your own computer using local AI models instead of requiring OpenAI/Gemini/Claude APIs.
 
-> **Important:** The GitHub repository stays small because large AI model files are downloaded to the user's computer during setup. You do **not** need to commit multi-GB models to GitHub.
-
 ## ✨ What is included
 
 - 📕 PDF ingestion

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+# Local AI
+models/
+*.gguf
+*.bin
+*.safetensors
+# User data
+data/
+uploads/
+*.db
+*.sqlite
+# IDE
+.vscode/
+.idea/
+# OS
+.DS_Store
+Thumbs.db

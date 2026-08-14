@@ -183,11 +183,6 @@ Recording
 📄 PDF
 ```
 
-The interface should expose the local AI state clearly, including detected GPU/VRAM/RAM, selected Qwen model, processing progress, and final PDF output.
-
-> **Note:** The current repository contains the modern local upload workspace and static website assets. The dashboard/sidebar structure above is the target application structure for the full Turbo-style MOM workspace; it is documented here so the UI roadmap remains part of the project specification rather than being forgotten.
-
----
 
 # 🧠 Automatic Qwen model selection
 
@@ -284,13 +279,7 @@ The local Qwen prompt generates professional meeting minutes containing informat
 
 The model is instructed not to invent unsupported facts.
 
----
-
-# 🌐 Website files
-
-The local Flask website is organized as:
-
-```text
+```
 MOM/
 │
 ├── app.py
@@ -323,22 +312,6 @@ Contains the modern responsive visual design.
 Handles hardware information, upload, processing progress, errors, and PDF result handling.
 
 The website is served locally by Flask.
-
----
-
-# 🧹 Cloud/API version removed
-
-The old `mom_online` cloud/Gemini application has been removed.
-
-There is **no supported online Gemini workflow** in the current MOM project.
-
-You should not need to enter:
-
-```text
-GEMINI_API_KEY
-```
-
-or any other cloud AI API key.
 
 ---
 

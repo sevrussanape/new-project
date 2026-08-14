@@ -1,227 +1,78 @@
 # StudyAI Local — Turbo AI Alternative
 
-A privacy-first **local AI study assistant** inspired by modern AI learning platforms. The goal is to provide a polished study workspace while keeping the AI processing on the user's own computer.
+A privacy-first local AI study workspace. The repository is small; large AI weights are downloaded to the user's computer during setup.
 
-## ✨ What this project does
+## Implemented
 
-StudyAI is designed around this workflow:
+- PDF ingestion
+- Scanned-PDF OCR fallback
+- DOCX ingestion including tables
+- TXT / Markdown ingestion
+- Audio and video ingestion
+- Local Whisper transcription
+- YouTube transcript import with local-audio + Whisper fallback
+- Multi-source course knowledge base
+- Local sentence-transformer semantic embeddings
+- FAISS vector database
+- Retrieval + lightweight reranking
+- Local Qwen3 LLM through Ollama
+- AI notes
+- Structured flashcards with review mode
+- Structured quizzes with answer checking and scoring
+- AI Tutor grounded in retrieved course sources
+- Local SQLite course/activity storage
+- Optional local TTS utility
+- Hardware-aware Qwen model selection
+- Windows setup/run scripts
+- No OpenAI/Gemini/Claude API required
 
-```text
-Your study material
-       ↓
- PDF / documents / recordings
-       ↓
- Local processing
-       ↓
- Local RAG + Qwen3
-       ↓
- ┌─────┬──────────┬─────────┐
- ↓     ↓          ↓         ↓
-Notes Flashcards Quiz    AI Tutor
-```
+## Setup (Windows)
 
-### Current working features
+1. Install Python 3.11+.
+2. Install Ollama from https://ollama.com/download.
+3. Clone the repository and checkout `ai-project`.
+4. Open `turbo ai alternative`.
+5. **Run `setup.bat` first.**
+6. When setup finishes, run `run.bat`.
 
-- 📕 PDF upload and local text extraction
-- 🤖 Local Qwen3 LLM through Ollama
-- 🧠 AI-generated study notes
-- 🗂️ Flashcard generation
-- 🎯 Quiz generation
-- 💬 AI Tutor grounded in uploaded material
-- 🖥️ Hardware detection
-- ⚙️ Automatic local-model recommendation
-- 🔒 No cloud AI API required
-- 🌐 Local Streamlit web application
-- 🪟 Windows `setup.bat` and `run.bat`
-- 📦 Large AI model files are downloaded locally and are **not stored in GitHub**
+Setup creates a virtual environment, installs dependencies, checks the computer's RAM/GPU/storage, and downloads a suitable Qwen3 model through Ollama.
 
-## 🚀 How to install and run
+### Optional OCR
 
-### Step 1 — Install Python
+OCR support uses Tesseract when available. If a scanned PDF needs OCR, install the Tesseract OCR engine on Windows and ensure `tesseract.exe` is on PATH. Normal text PDFs do not require it.
 
-Install **Python 3.11 or newer**.
+### What downloads on first use
 
-Check it with:
+The Qwen LLM is downloaded by Ollama. The sentence-transformer embedding model (`all-MiniLM-L6-v2`) is downloaded the first time the semantic index is built. Whisper downloads its selected model the first time audio/video transcription is used. These files are intentionally excluded from GitHub.
 
-```bash
-python --version
-```
-
-### Step 2 — Install Ollama
-
-Install Ollama on the computer from:
-
-https://ollama.com/download
-
-Ollama is responsible for running the local LLM. StudyAI does not send your prompts or documents to a cloud AI provider.
-
-### Step 3 — Download this repository
-
-```bash
-git clone https://github.com/sevrussanape/new-project.git
-cd new-project
-```
-
-Then switch to the project branch:
-
-```bash
-git checkout ai-project
-```
-
-Open:
+## Workflow
 
 ```text
-turbo ai alternative
+PDF / DOCX / YouTube / Audio / Video
+                 ↓
+        Local extraction / Whisper / OCR
+                 ↓
+            Text chunks
+                 ↓
+       Sentence embeddings + FAISS
+                 ↓
+             Retrieval
+                 ↓
+            Reranking
+                 ↓
+            Local Qwen3
+                 ↓
+  Notes · Flashcards · Quiz · AI Tutor
 ```
 
-### Step 4 — First installation
+## Offline behavior
 
-On Windows, double-click:
+The initial setup and online YouTube import require internet access. After the required models and dependencies have been downloaded, document processing, transcription, embeddings, retrieval and LLM generation can run locally. YouTube itself necessarily requires internet access when importing directly from a URL.
 
-```text
-setup.bat
-```
+## Model files are not in GitHub
 
-**This is the first file you should run.**
+This repository intentionally contains source code only. A local installation can use several GB of model files without making the GitHub repository huge.
 
-The setup process:
+## Current scope
 
-```text
-setup.bat
-   ↓
-Create Python virtual environment
-   ↓
-Install Python libraries
-   ↓
-Check Ollama
-   ↓
-Detect RAM / GPU / VRAM / disk
-   ↓
-Choose a suitable Qwen3 model
-   ↓
-Download the model to the user's PC
-   ↓
-Setup complete
-```
-
-### Step 5 — Start the website
-
-After setup finishes, double-click:
-
-```text
-run.bat
-```
-
-The local StudyAI website will start in your browser, normally at:
-
-```text
-http://localhost:8501
-```
-
-## 🧠 Model strategy
-
-The repository **does not contain the LLM weights**. This is intentional.
-
-The setup script recommends a Qwen3 model based on the computer's available resources. Supported model choices currently include:
-
-| Model | Approx. model size | Target |
-|---|---:|---|
-| Qwen3 4B | ~2.6 GB | Lightweight PCs |
-| Qwen3 8B | ~5.2 GB | Balanced |
-| Qwen3 14B | ~9.3 GB | Higher quality |
-| Qwen3 30B | ~19 GB | High-end systems |
-
-The actual installed size can vary depending on the Ollama model build and local cache.
-
-### Why isn't the model on GitHub?
-
-A model can be several gigabytes, while the source code is tiny. Putting the model into GitHub would make the repository unnecessarily huge.
-
-Instead:
-
-```text
-GitHub
-  ↓
-Small source-code repository
-  ↓
-User runs setup.bat
-  ↓
-Ollama downloads the recommended model
-  ↓
-Model lives on the user's computer
-```
-
-## 🔒 Privacy / offline operation
-
-The initial setup needs internet access to install dependencies and download the selected model.
-
-After setup, the core AI workflow is local:
-
-```text
-User PDF
-   ↓
-Local extraction
-   ↓
-Local retrieval
-   ↓
-Local Qwen3
-   ↓
-Local answer
-```
-
-No OpenAI, Gemini, Claude, or other cloud AI API key is required for the current core workflow.
-
-## 📁 Project structure
-
-```text
-turbo ai alternative/
-│
-├── app/
-│   ├── ai/
-│   │   ├── ollama_client.py
-│   │   ├── prompts.py
-│   │   └── rag.py
-│   ├── processors/
-│   │   ├── audio.py
-│   │   └── pdf.py
-│   ├── hardware.py
-│   ├── main.py
-│   └── setup.py
-│
-├── data/
-├── models/
-├── requirements.txt
-├── setup.bat
-├── run.bat
-├── .gitignore
-├── LICENSE
-└── README.md
-```
-
-## 🛣️ Roadmap
-
-The current repository is the working MVP. Planned upgrades are:
-
-- [ ] DOCX ingestion
-- [ ] YouTube import/transcript workflow
-- [ ] Audio and video upload
-- [ ] Local Whisper transcription
-- [ ] Semantic embeddings
-- [ ] Vector database
-- [ ] Reranking for better RAG accuracy
-- [ ] OCR for scanned PDFs
-- [ ] Better multimodal document understanding
-- [ ] Interactive flashcard review
-- [ ] Interactive quiz scoring
-- [ ] Local text-to-speech / AI podcast mode
-- [ ] Course/project management
-- [ ] Local study history
-- [ ] More polished Turbo-style landing page and workspace
-
-## ⚠️ Current limitation
-
-This is **not yet a complete one-to-one replacement for Turbo AI**. The current MVP focuses on the local LLM + PDF + study-material workflow. The roadmap above describes the remaining functionality needed for a fuller alternative.
-
-## 📄 License
-
-MIT License. See `LICENSE` for details.
+The requested core Turbo-style study features are implemented. Course management/history and the final marketing-page polish are optional extras and are not required for the core local AI workflow.

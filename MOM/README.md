@@ -2,7 +2,7 @@
 
 Turn meeting audio/video into professional **Minutes of Meeting (MoM)** PDFs using local AI.
 
-The MOM project is now designed for **local/offline AI processing**. There is no cloud Gemini version and no API-key setup in this project.
+The MOM project is designed for **local/offline AI processing**. There is no cloud Gemini version and no API-key setup.
 
 ## ✨ Features
 
@@ -18,7 +18,6 @@ The MOM project is now designed for **local/offline AI processing**. There is no
 - 📊 Real-time processing progress
 - 🌑 Modern responsive local web interface
 - 🔒 Recordings and generated content remain on the computer
-- 🌐 Runs at `http://127.0.0.1:5000`
 
 ---
 
@@ -26,9 +25,7 @@ The MOM project is now designed for **local/offline AI processing**. There is no
 
 ## 1. Install Python
 
-Install **Python 3.11 or newer** and enable **Add Python to PATH** during installation.
-
-Check it:
+Install **Python 3.11 or newer** and enable **Add Python to PATH**.
 
 ```powershell
 python --version
@@ -36,7 +33,7 @@ python --version
 
 ## 2. Install Ollama
 
-Install Ollama:
+Install Ollama from:
 
 https://ollama.com/download
 
@@ -50,17 +47,13 @@ You do **not** need a Gemini, OpenAI, Claude, or other cloud API key.
 
 ## 3. Install FFmpeg
 
-FFmpeg is used to extract audio from video recordings.
-
-On Windows PowerShell:
+FFmpeg extracts audio from video recordings.
 
 ```powershell
 winget install Gyan.FFmpeg
 ```
 
-After installation, reopen your terminal.
-
-Check it:
+Then reopen the terminal and check:
 
 ```powershell
 ffmpeg -version
@@ -76,7 +69,7 @@ setup.bat
 
 **Do not run `app.py` first.**
 
-The setup script:
+Setup performs:
 
 ```text
 setup.bat
@@ -94,19 +87,12 @@ Recommend Qwen3 model
 Prepare local AI environment
 ```
 
-The recommended model can be downloaded automatically when the application starts if it is not already installed.
+The recommended Qwen model is downloaded when required.
 
 ## 5. Start the website
 
-After setup completes, activate the environment if needed:
-
 ```powershell
 .venv\Scripts\activate
-```
-
-Then run:
-
-```powershell
 python app.py
 ```
 
@@ -136,11 +122,76 @@ PDF download
 
 ---
 
+# 🖥️ Website / Application Structure
+
+The MOM website is designed as a **full local AI application**, following the same modern product direction as the Turbo AI Alternative project rather than being only a simple upload page.
+
+The planned/current application layout is:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ ✦ MOM AI                              ● Local AI    Settings │
+├──────────────┬──────────────────────────────────────────────┤
+│              │                                              │
+│  Dashboard   │       Turn Meetings Into Clear Action       │
+│              │                                              │
+│  New Meeting │   ┌──────────────────────────────────────┐   │
+│              │   │                                      │   │
+│  Meetings    │   │       🎙 Upload Meeting              │   │
+│              │   │                                      │   │
+│  Documents   │   │       MP4 • MP3 • WAV • M4A          │   │
+│              │   │                                      │   │
+│  AI Model    │   │          Choose Recording            │   │
+│              │   │                                      │   │
+│  Settings    │   └──────────────────────────────────────┘   │
+│              │                                              │
+│              │  GPU       VRAM       RAM       AI Model     │
+│              │  RTX ...   8GB        32GB      Qwen3 8B    │
+│              │                                              │
+│              │  Recent Meetings                             │
+│              │  ┌────────────┐ ┌────────────┐ ┌──────────┐ │
+│              │  │ Meeting 01 │ │ Meeting 02 │ │ Meeting  │ │
+│              │  │ ✓ Complete │ │ ✓ Complete │ │ Process  │ │
+│              │  └────────────┘ └────────────┘ └──────────┘ │
+└──────────────┴──────────────────────────────────────────────┘
+```
+
+### Main sections
+
+```text
+Dashboard
+New Meeting
+Meetings
+Documents
+AI Model
+Settings
+```
+
+### Processing workspace
+
+```text
+Recording
+    ↓
+🎙 Whisper
+    ↓
+🧠 Transcript
+    ↓
+🤖 Qwen3
+    ↓
+📋 Minutes
+    ↓
+📄 PDF
+```
+
+The interface should expose the local AI state clearly, including detected GPU/VRAM/RAM, selected Qwen model, processing progress, and final PDF output.
+
+> **Note:** The current repository contains the modern local upload workspace and static website assets. The dashboard/sidebar structure above is the target application structure for the full Turbo-style MOM workspace; it is documented here so the UI roadmap remains part of the project specification rather than being forgotten.
+
+---
+
 # 🧠 Automatic Qwen model selection
 
 MOM checks your computer before selecting a model.
-
-Current recommendations are approximately:
 
 | Model | Approx. size | Target |
 |---|---:|---|
@@ -149,9 +200,9 @@ Current recommendations are approximately:
 | `qwen3:14b` | ~9.3 GB | Higher-quality systems |
 | `qwen3:30b` | ~19 GB | High-end systems |
 
-The actual model size can vary by Ollama build.
+Actual model size can vary by Ollama build.
 
-The model is **not stored in GitHub**. It is downloaded to the user's computer when needed.
+Models are **not stored in GitHub**. They are downloaded to the user's computer when needed.
 
 ---
 
@@ -188,7 +239,6 @@ Local Qwen3 via Ollama
 Local PDF
 ```
 
-
 ### Internet is only needed initially for things such as:
 
 - Installing Python packages
@@ -220,7 +270,7 @@ Video audio is extracted with FFmpeg before transcription when FFmpeg is availab
 
 # 📝 Minutes generation
 
-The local Qwen prompt asks for professional meeting minutes containing information such as:
+The local Qwen prompt generates professional meeting minutes containing information such as:
 
 - Executive Summary
 - Attendees when supported by the transcript
@@ -236,26 +286,9 @@ The model is instructed not to invent unsupported facts.
 
 ---
 
-# 🌐 Website
+# 🌐 Website files
 
-The MOM website was designed around a modern local-AI experience:
-
-- Dark premium interface
-- Local AI badge
-- Large hero section
-- Recording upload card
-- Hardware information
-- Recommended Qwen model
-- Live progress bar
-- Processing states
-- PDF result screen
-- Responsive layout
-
-The website is served locally by Flask.
-
----
-
-# 📁 Project structure
+The local Flask website is organized as:
 
 ```text
 MOM/
@@ -264,13 +297,50 @@ MOM/
 ├── hardware.py
 ├── requirements.txt
 ├── setup.bat
+├── README.md
+│
 ├── templates/
 │   └── index.html
+│
+├── static/
+│   ├── style.css
+│   └── app.js
+│
 ├── uploads/
-├── output/
-└── README.md
+└── output/
 ```
 
+### `templates/index.html`
+
+Contains the application HTML structure.
+
+### `static/style.css`
+
+Contains the modern responsive visual design.
+
+### `static/app.js`
+
+Handles hardware information, upload, processing progress, errors, and PDF result handling.
+
+The website is served locally by Flask.
+
+---
+
+# 🧹 Cloud/API version removed
+
+The old `mom_online` cloud/Gemini application has been removed.
+
+There is **no supported online Gemini workflow** in the current MOM project.
+
+You should not need to enter:
+
+```text
+GEMINI_API_KEY
+```
+
+or any other cloud AI API key.
+
+---
 
 # ⚠️ Troubleshooting
 
@@ -284,7 +354,7 @@ Install Ollama and restart the terminal.
 
 ### Qwen download fails
 
-Make sure Ollama is installed and running. Check:
+Make sure Ollama is installed and running:
 
 ```powershell
 ollama list
@@ -292,19 +362,21 @@ ollama list
 
 ### FFmpeg is not found
 
-Install FFmpeg and ensure `ffmpeg` works from a new terminal:
+Install FFmpeg and ensure:
 
 ```powershell
 ffmpeg -version
 ```
 
+works from a new terminal.
+
 ### NVIDIA GPU is not detected
 
-MOM uses `nvidia-smi` for NVIDIA detection. If it is unavailable, the application falls back to RAM-based model selection.
+MOM uses `nvidia-smi` for NVIDIA detection. If unavailable, the application falls back to RAM-based model selection.
 
 ### Whisper is slow
 
-Local transcription speed depends heavily on CPU/GPU hardware and the Whisper model size.
+Local transcription speed depends heavily on CPU/GPU hardware and the selected Whisper model.
 
 ---
 

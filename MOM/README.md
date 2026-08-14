@@ -188,7 +188,6 @@ Local Qwen3 via Ollama
 Local PDF
 ```
 
-Your recording is not uploaded to Gemini or another cloud AI service.
 
 ### Internet is only needed initially for things such as:
 
@@ -239,7 +238,7 @@ The model is instructed not to invent unsupported facts.
 
 # 🌐 Website
 
-The MOM website was redesigned around a modern local-AI experience:
+The MOM website was designed around a modern local-AI experience:
 
 - Dark premium interface
 - Local AI badge
@@ -272,23 +271,6 @@ MOM/
 └── README.md
 ```
 
----
-
-# 🧹 Cloud/API version removed
-
-The old `mom_online` Gemini application has been removed from this project.
-
-There is **no supported online Gemini workflow** in the current MOM project.
-
-You should not need to enter:
-
-```text
-GEMINI_API_KEY
-```
-
-or any other cloud AI API key to run MOM.
-
----
 
 # ⚠️ Troubleshooting
 

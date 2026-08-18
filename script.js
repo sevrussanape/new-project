@@ -1,205 +1,31 @@
-let menu = document.querySelector('#menu-bar');
-let navbar = document.querySelector('.navbar');
-
-menu.onclick = () => {
-  menu.classList.toggle('fa-times');
-  navbar.classList.toggle('active');
-}
-
-let cartBtn = document.querySelector('#cart-btn');
-let closeCartBtn = document.querySelector('#close-cart-btn');
-let shoppingCartContainer = document.querySelector('.shopping-cart-container');
-
-cartBtn.onclick = () => {
-  shoppingCartContainer.classList.add('active');
-}
-
-closeCartBtn.onclick = () => {
-  shoppingCartContainer.classList.remove('active');
-}
-
-window.onscroll = () => {
-  menu.classList.remove('fa-times');
-  navbar.classList.remove('active');
-  shoppingCartContainer.classList.remove('active');
-
-  if (window.scrollY > 60) {
-    document.querySelector('#scroll-top').classList.add('active');
-  } else {
-    document.querySelector('#scroll-top').classList.remove('active');
-  }
-}
-
-function loader() {
-  document.querySelector('.loader-container').classList.add('fade-out');
-}
-
-function fadeOut() {
-  setInterval(loader, 3000);
-}
-
-window.onload = fadeOut();
-
-
-// Shopping Cart Logic
-let cart = JSON.parse(localStorage.getItem('food-cart')) || [];
-
-function updateCartUI() {
-  let cartContainer = document.querySelector('.cart-items-container');
-  let totalSpan = document.querySelector('.cart-total span');
-
-  // clear current items
-  cartContainer.innerHTML = '';
-
-  if (cart.length === 0) {
-    cartContainer.innerHTML = '<p class="empty-cart-msg">Your cart is empty</p>';
-    totalSpan.innerText = '₹0.00';
-    return;
-  }
-
-  let total = 0;
-
-  cart.forEach((item, index) => {
-    total += item.price * item.qty;
-    let cartItem = document.createElement('div');
-    cartItem.classList.add('cart-item');
-    cartItem.innerHTML = `
-            <div class="fas fa-times" onclick="removeFromCart(${index})"></div>
-            <img src="${item.image}" alt="">
-            <div class="content">
-                <h3>${item.name}</h3>
-                <span class="qty">${item.qty} x </span>
-                <span class="price">₹${item.price}</span>
-            </div>
-        `;
-    cartContainer.appendChild(cartItem);
-  });
-
-  totalSpan.innerText = '₹' + total.toFixed(2);
-  localStorage.setItem('food-cart', JSON.stringify(cart));
-}
-
-function addToCart(name, price, image) {
-  // check if item already exists
-  let existingItem = cart.find(item => item.name === name);
-  if (existingItem) {
-    existingItem.qty++;
-  } else {
-    cart.push({ name, price, image, qty: 1 });
-  }
-  updateCartUI();
-  shoppingCartContainer.classList.add('active'); // open cart
-}
-
-function removeFromCart(index) {
-  cart.splice(index, 1);
-  updateCartUI();
-}
-
-// Attach listeners to "Order Now" buttons in Popular section (where prices exist)
-document.addEventListener('DOMContentLoaded', () => {
-  // Select buttons in "popular" section
-  let buttons = document.querySelectorAll('.popular .box .btn');
-
-  buttons.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      let box = btn.parentElement;
-      let name = box.querySelector('h3').innerText;
-      let image = box.querySelector('img').src;
-      let priceText = box.querySelector('.price').innerText;
-      // format likely "$5 - $20", we'll just take the first number for simplicity
-      // or we can generate a random price between the range. let's just parse $5.
-      let price = parseFloat(priceText.replace(/[^0-9.-]+/g, ""));
-      if (isNaN(price)) price = 100; // default fallout
-
-      addToCart(name, price, image);
-    });
-  });
-
-  // Handle styling for other sections if needed or add fallback listeners
-  // For gallery or home where there is no price, we can add default pricing
-  let otherButtons = document.querySelectorAll('.gallery .box .btn, .home .content .btn');
-  otherButtons.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      // For home, getting image is different
-      let parent = btn.parentElement;
-      let container = parent.parentElement; // .home
-
-      let name = "Delicious Food";
-      let image = "images/home-img.png";
-      let price = 150; // default
-
-      if (parent.classList.contains('content') && container.classList.contains('box')) {
-        // Gallery
-        name = parent.querySelector('h3').innerText;
-        // Image is sibling of content in gallery structure?
-        // .gallery .box img is sibling of .content
-        let imgEl = container.querySelector('img');
-        if (imgEl) image = imgEl.src;
-      } else if (container.classList.contains('home')) {
-        // Home section
-        name = container.querySelector('h3').innerText;
-        let imgEl = container.querySelector('.image img');
-        if (imgEl) image = imgEl.src;
-      }
-
-      addToCart(name, price, image);
-    })
-  })
-
-  updateCartUI();
-
-  // Handle Order Form Submission
-  let orderForm = document.querySelector('.order form');
-  if (orderForm) {
-    orderForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      if (cart.length === 0) {
-        alert("Your cart is empty! Add some food first.");
-        return;
-      }
-
-      let name = orderForm.querySelector('input[type="text"]').value;
-      let email = orderForm.querySelector('input[type="email"]').value;
-      let phone = orderForm.querySelector('input[type="number"]').value;
-      let address = orderForm.querySelector('textarea').value;
-
-      if (!name || !email || !phone || !address) {
-        alert("Please fill in all details");
-        return;
-      }
-
-      let orderData = {
-        customer: { name, email, phone, address },
-        items: cart,
-        total: cart.reduce((sum, item) => sum + (item.price * item.qty), 0)
-      };
-
-      try {
-        const baseUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:3000' : '/api';
-        let response = await fetch(`${baseUrl}/order`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(orderData)
-        });
-
-        let result = await response.json();
-        if (result.success) {
-          alert("Order placed successfully! Order ID: " + result.orderId);
-          cart = [];
-          updateCartUI();
-          orderForm.reset();
-          shoppingCartContainer.classList.remove('active');
-        } else {
-          alert("Something went wrong. Try again.");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Failed to connect to server. Is the backend running?");
-      }
-    });
-  }
-});
+const API = (location.hostname==='localhost'||location.hostname==='127.0.0.1') ? 'http://localhost:3000' : '/api';
+const foods=[
+{name:'Hyderabadi Biryani',cat:'meals',price:249,image:'images/g-1.jpg',rating:4.9,desc:'Aromatic basmati rice, tender pieces and house spices.'},
+{name:'Paneer Tikka Pizza',cat:'meals',price:299,image:'images/s-img-2.jpg',rating:4.8,desc:'Crisp crust, smoky paneer and creamy cheese.'},
+{name:'Chole Bhature',cat:'meals',price:179,image:'images/g-3.jpg',rating:4.7,desc:'Spiced chickpeas served with fluffy bhature.'},
+{name:'Butter Chicken',cat:'meals',price:329,image:'images/g-7.jpg',rating:4.9,desc:'Silky tomato gravy with tender chicken.'},
+{name:'Masala Burger',cat:'snacks',price:149,image:'images/s-img-1.jpg',rating:4.8,desc:'Crispy potato patty, chutney and fresh salad.'},
+{name:'Vada Pav',cat:'snacks',price:79,image:'images/g-2.jpg',rating:4.7,desc:'Mumbai-style spicy potato slider.'},
+{name:'Samosa',cat:'snacks',price:59,image:'images/g-5.jpg',rating:4.8,desc:'Crisp pastry filled with spiced potato.'},
+{name:'Pani Puri',cat:'snacks',price:69,image:'images/g-6.jpg',rating:4.7,desc:'Crispy puris with tangy mint water.'},
+{name:'Rasmalai Cake',cat:'sweets',price:399,image:'images/p-2.jpg',rating:4.9,desc:'Soft cake layered with rich rasmalai cream.'},
+{name:'Kaju Katli',cat:'sweets',price:249,image:'images/p-3.jpg',rating:4.8,desc:'Classic cashew fudge with a delicate finish.'},
+{name:'Gulab Jamun',cat:'sweets',price:129,image:'images/s-img-5.jpg',rating:4.8,desc:'Warm milk-solid dumplings in saffron syrup.'},
+{name:'Pista Kulfi',cat:'sweets',price:119,image:'images/p-6.jpg',rating:4.8,desc:'Slow-churned pistachio kulfi.'},
+{name:'Masala Chai',cat:'drinks',price:69,image:'images/s-img-4.jpg',rating:4.9,desc:'Aromatic tea brewed with warming spices.'},
+{name:'Lassi',cat:'drinks',price:99,image:'images/g-9.jpg',rating:4.8,desc:'Cool, creamy traditional yogurt drink.'},
+{name:'Thandai',cat:'drinks',price:109,image:'images/p-5.jpg',rating:4.7,desc:'Chilled milk drink with nuts and spices.'}
+];
+let cart=JSON.parse(localStorage.getItem('crave-cart')||'[]'), activeCat='all';
+const $=s=>document.querySelector(s), grid=$('#foodGrid');
+function save(){localStorage.setItem('crave-cart',JSON.stringify(cart));renderCart()}
+function renderFoods(){let q=$('#searchInput').value.toLowerCase(), sort=$('#sortSelect').value;let list=foods.filter(f=>(activeCat==='all'||f.cat===activeCat)&&f.name.toLowerCase().includes(q));if(sort==='low')list.sort((a,b)=>a.price-b.price);if(sort==='high')list.sort((a,b)=>b.price-a.price);grid.innerHTML=list.map((f,i)=>`<article class="food-card"><div class="food-img"><img src="${f.image}" alt="${f.name}" loading="lazy"><span class="badge">${f.rating} ★</span></div><div class="food-body"><div class="food-top"><h3>${f.name}</h3><span class="price">₹${f.price}</span></div><p>${f.desc}</p><div class="meta"><span>Fresh · 30–40 min</span><button class="add" data-index="${foods.indexOf(f)}">Add +</button></div></div></article>`).join('');$('#empty').classList.toggle('hidden',!list.length)}
+function renderCart(){let count=cart.reduce((n,x)=>n+x.qty,0),total=cart.reduce((n,x)=>n+x.price*x.qty,0);$('#cartCount').textContent=count;$('#cartTotal').textContent='₹'+total;$('#cartItems').innerHTML=cart.length?cart.map((x,i)=>`<div class="cart-line"><img src="${x.image}" alt="${x.name}"><div style="flex:1"><h4>${x.name}</h4><p>₹${x.price} each</p><div class="qty"><button data-action="minus" data-i="${i}">−</button><span>${x.qty}</span><button data-action="plus" data-i="${i}">+</button><button data-action="remove" data-i="${i">Remove</button></div></div></div>`).join(''):'<p style="color:#74736d;text-align:center;padding-top:60px">Your bag is empty.<br>Add something delicious.</p>'}
+function toast(msg){let t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+function openCart(){$('#drawer').classList.add('open')}function closeCart(){$('#drawer').classList.remove('open')}
+grid.addEventListener('click',e=>{let b=e.target.closest('.add');if(!b)return;let f=foods[+b.dataset.index],x=cart.find(x=>x.name===f.name);x?x.qty++:cart.push({...f,qty:1});save();openCart();toast(f.name+' added to your bag')});
+$('#cartItems').addEventListener('click',e=>{let b=e.target.closest('button');if(!b)return;let i=+b.dataset.i;if(b.dataset.action==='plus')cart[i].qty++;if(b.dataset.action==='minus'){cart[i].qty--;if(cart[i].qty<=0)cart.splice(i,1)}if(b.dataset.action==='remove')cart.splice(i,1);save()});
+$('#categories').addEventListener('click',e=>{let b=e.target.closest('.category');if(!b)return;document.querySelectorAll('.category').forEach(x=>x.classList.remove('active'));b.classList.add('active');activeCat=b.dataset.cat;renderFoods()});$('#searchInput').addEventListener('input',renderFoods);$('#sortSelect').addEventListener('change',renderFoods);$('#cartButton').onclick=openCart;$('#closeCart').onclick=closeCart;$('#drawerBackdrop').onclick=closeCart;$('#searchToggle').onclick=()=>{$('#searchInput').focus();$('#menu').scrollIntoView({behavior:'smooth'})};$('#mobileToggle').onclick=()=>document.querySelector('.header nav').classList.toggle('mobile-open');
+$('#checkout').onclick=()=>{if(!cart.length)return toast('Your bag is empty');$('#checkoutModal').classList.remove('hidden')};$('#closeModal').onclick=()=>$('#checkoutModal').classList.add('hidden');
+$('#orderForm').addEventListener('submit',async e=>{e.preventDefault();if(!cart.length)return;let form=new FormData(e.target),items=cart.map(({name,price,image,qty})=>({name,price,image,qty}));let payload={customer:{name:form.get('name'),phone:form.get('phone'),email:form.get('email'),address:form.get('address')},items};let btn=e.target.querySelector('button[type=submit]');btn.disabled=true;btn.textContent='Placing order…';try{let r=await fetch(API+'/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),data=await r.json();if(!r.ok||!data.success)throw new Error(data.error||'Order failed');$('#orderMessage').textContent='Order placed successfully · #'+data.orderId;cart=[];save();e.target.reset();toast('Order #'+data.orderId+' placed');setTimeout(()=>{$('#checkoutModal').classList.add('hidden');closeCart();$('#orderMessage').textContent=''},1800)}catch(err){$('#orderMessage').textContent='Could not reach the backend. Run: npm start';console.error(err)}finally{btn.disabled=false;btn.innerHTML='Place order <i class="fa-solid fa-arrow-right"></i>'}});
+renderFoods();renderCart();

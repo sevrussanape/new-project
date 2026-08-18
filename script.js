@@ -1,10 +1,152 @@
-const API=(location.hostname==='localhost'||location.hostname==='127.0.0.1')?'http://localhost:3000':'/api';
-const foods=[['Hyderabadi Biryani','meals',249,'images/g-1.jpg','Aromatic basmati rice and house spices.'],['Paneer Tikka Pizza','meals',299,'images/s-img-2.jpg','Crisp crust, smoky paneer and cheese.'],['Chole Bhature','meals',179,'images/g-3.jpg','Spiced chickpeas with fluffy bhature.'],['Butter Chicken','meals',329,'images/g-7.jpg','Silky tomato gravy with tender chicken.'],['Masala Burger','snacks',149,'images/s-img-1.jpg','Crispy potato patty and chutney.'],['Vada Pav','snacks',79,'images/g-2.jpg','Mumbai-style spicy potato slider.'],['Samosa','snacks',59,'images/g-5.jpg','Crisp pastry filled with spiced potato.'],['Pani Puri','snacks',69,'images/g-6.jpg','Crispy puris with tangy mint water.'],['Rasmalai Cake','sweets',399,'images/p-2.jpg','Soft cake layered with rasmalai cream.'],['Kaju Katli','sweets',249,'images/p-3.jpg','Classic cashew fudge.'],['Gulab Jamun','sweets',129,'images/s-img-5.jpg','Warm dumplings in saffron syrup.'],['Pista Kulfi','sweets',119,'images/p-6.jpg','Slow-churned pistachio kulfi.'],['Masala Chai','drinks',69,'images/s-img-4.jpg','Aromatic tea brewed with spices.'],['Lassi','drinks',99,'images/g-9.jpg','Cool traditional yogurt drink.'],['Thandai','drinks',109,'images/p-5.jpg','Chilled milk drink with nuts and spices.']];
-let cart=JSON.parse(localStorage.getItem('crave-cart')||'[]'),cat='all';const $=s=>document.querySelector(s);
-function render(){let q=$('#searchInput').value.toLowerCase(),sort=$('#sortSelect').value,list=foods.map((f,i)=>({...f,i})).filter(f=>(cat==='all'||f[1]===cat)&&f[0].toLowerCase().includes(q));if(sort==='low')list.sort((a,b)=>a[2]-b[2]);if(sort==='high')list.sort((a,b)=>b[2]-a[2]);$('#foodGrid').innerHTML=list.map(f=>`<article class="food-card"><div class="food-img"><img src="${f[3]}" alt="${f[0]}"><span class="badge">4.9 ★</span></div><div class="food-body"><div class="food-top"><h3>${f[0]}</h3><span class="price">₹${f[2]}</span></div><p>${f[4]}</p><div class="meta"><span>Fresh · 30–40 min</span><button class="add" data-i="${f.i}">Add +</button></div></div></article>`).join('');$('#empty').classList.toggle('hidden',!list.length);renderCart()}
-function renderCart(){let count=cart.reduce((a,x)=>a+x.qty,0),total=cart.reduce((a,x)=>a+x.price*x.qty,0);$('#cartCount').textContent=count;$('#cartTotal').textContent='₹'+total;$('#cartItems').innerHTML=cart.length?cart.map((x,i)=>`<div class="cart-line"><img src="${x.image}" alt="${x.name}"><div style="flex:1"><h4>${x.name}</h4><p>₹${x.price} each</p><div class="qty"><button data-a="-" data-i="${i}">−</button><span>${x.qty}</span><button data-a="+" data-i="${i}">+</button><button data-a="x" data-i="${i}">Remove</button></div></div></div>`).join(''):'<p style="color:#74736d;text-align:center;padding-top:60px">Your bag is empty.<br>Add something delicious.</p>';localStorage.setItem('crave-cart',JSON.stringify(cart))}
-function toast(s){const t=$('#toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-$('#foodGrid').addEventListener('click',e=>{const b=e.target.closest('.add');if(!b)return;const f=foods[+b.dataset.i],x=cart.find(x=>x.name===f[0]);x?x.qty++:cart.push({name:f[0],price:f[2],image:f[3],qty:1});renderCart();$('#drawer').classList.add('open');toast(f[0]+' added')});
-$('#cartItems').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const i=+b.dataset.i;if(b.dataset.a==='+')cart[i].qty++;if(b.dataset.a==='-')cart[i].qty--;if(b.dataset.a==='x'||cart[i].qty<1)cart.splice(i,1);renderCart()});
-$('#categories').addEventListener('click',e=>{const b=e.target.closest('.category');if(!b)return;document.querySelectorAll('.category').forEach(x=>x.classList.remove('active'));b.classList.add('active');cat=b.dataset.cat;render()});$('#searchInput').oninput=render;$('#sortSelect').onchange=render;$('#cartButton').onclick=()=>$('#drawer').classList.add('open');$('#closeCart').onclick=()=>$('#drawer').classList.remove('open');$('#drawerBackdrop').onclick=()=>$('#drawer').classList.remove('open');$('#searchToggle').onclick=()=>{$('#menu').scrollIntoView({behavior:'smooth'});setTimeout(()=>$('#searchInput').focus(),400)};
-$('#checkout').onclick=()=>{if(!cart.length)return toast('Your bag is empty');$('#checkoutModal').classList.remove('hidden')};$('#closeModal').onclick=()=>$('#checkoutModal').classList.add('hidden');$('#orderForm').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),items=cart.map(x=>({name:x.name,price:x.price,image:x.image,qty:x.qty}));const btn=e.target.querySelector('button[type=submit]');btn.disabled=true;btn.textContent='Placing order…';try{const r=await fetch(API+'/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer:{name:f.get('name'),phone:f.get('phone'),email:f.get('email'),address:f.get('address')},items})}),d=await r.json();if(!r.ok||!d.success)throw Error(d.error||'Order failed');$('#orderMessage').textContent='Order placed successfully · #'+d.orderId;cart=[];renderCart();e.target.reset();toast('Order #'+d.orderId+' placed')}catch(err){$('#orderMessage').textContent='Backend connection failed. Start the server with npm start.';console.error(err)}finally{btn.disabled=false;btn.innerHTML='Place order <i class="fa-solid fa-arrow-right"></i>'}};render();
+const API = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:3000' : '/api';
+
+// Every catalog item now points to a food-specific image filename.
+// Existing repository food photos are used where available; legacy generic g-* / p-* assets are no longer referenced by the catalog.
+const foods = [
+  ['Hyderabadi Biryani', 'meals', 249, 'images/biryani.jpg', 'Aromatic basmati rice, tender chicken and house spices.'],
+  ['Paneer Tikka Pizza', 'meals', 299, 'images/paneer-tikka-pizza.svg', 'Crisp crust, smoky paneer tikka and melted cheese.'],
+  ['Chole Bhature', 'meals', 179, 'images/cholebhature.jpg', 'Spiced chickpeas with fluffy bhature.'],
+  ['Butter Chicken', 'meals', 329, 'images/butterchicken.jpg', 'Silky tomato gravy with tender chicken.'],
+  ['Masala Burger', 'snacks', 149, 'images/masala-burger.svg', 'Crispy potato patty, chutney and fresh salad.'],
+  ['Vada Pav', 'snacks', 79, 'images/vada-pav.svg', 'Mumbai-style spicy potato slider with garlic chutney.'],
+  ['Samosa', 'snacks', 59, 'images/samosa.svg', 'Crisp pastry filled with spiced potato and peas.'],
+  ['Pani Puri', 'snacks', 69, 'images/pani-puri.svg', 'Crispy puris with tangy mint and tamarind water.'],
+  ['Rasmalai Cake', 'sweets', 399, 'images/rasmalai-cake.svg', 'Soft cake layered with rasmalai cream.'],
+  ['Kaju Katli', 'sweets', 249, 'images/kaju-katli.svg', 'Classic cashew fudge finished with edible silver leaf.'],
+  ['Gulab Jamun', 'sweets', 129, 'images/gulab-jamun.svg', 'Warm milk dumplings soaked in saffron syrup.'],
+  ['Pista Kulfi', 'sweets', 119, 'images/pista-kulfi.svg', 'Slow-churned pistachio kulfi with roasted nuts.'],
+  ['Masala Chai', 'drinks', 69, 'images/masala-chai.svg', 'Aromatic Indian tea brewed with warming spices.'],
+  ['Lassi', 'drinks', 99, 'images/lassi.svg', 'Cool traditional yogurt drink, lightly sweetened.'],
+  ['Thandai', 'drinks', 109, 'images/thandai.svg', 'Chilled milk drink with nuts, saffron and spices.']
+];
+
+let cart = JSON.parse(localStorage.getItem('crave-cart') || '[]');
+let category = 'all';
+const $ = (selector) => document.querySelector(selector);
+
+function render() {
+  const query = ($('#food-search')?.value || '').trim().toLowerCase();
+  const sort = $('#sort-food')?.value || 'popular';
+  let list = foods.map((food, index) => ({ food, index })).filter(({ food }) =>
+    (category === 'all' || food[1] === category) && food[0].toLowerCase().includes(query)
+  );
+
+  if (sort === 'low') list.sort((a, b) => a.food[2] - b.food[2]);
+  if (sort === 'high') list.sort((a, b) => b.food[2] - a.food[2]);
+
+  $('#food-grid').innerHTML = list.map(({ food, index }) => `
+    <article class="food-card">
+      <div class="food-img">
+        <img src="${food[3]}" alt="${food[0]}" loading="lazy">
+        <span class="badge">4.9 ★</span>
+      </div>
+      <div class="food-body">
+        <div class="food-top"><h3>${food[0]}</h3><span class="price">₹${food[2]}</span></div>
+        <p>${food[4]}</p>
+        <div class="meta"><span>Fresh · 30–40 min</span><button class="add" data-index="${index}">Add +</button></div>
+      </div>
+    </article>`).join('');
+
+  $('#empty-state').classList.toggle('hidden', !list.length);
+  renderCart();
+}
+
+function renderCart() {
+  const count = cart.reduce((sum, item) => sum + item.qty, 0);
+  const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  $('#cart-count').textContent = count;
+  $('#cart-total').textContent = `₹${total}`;
+
+  $('#cart-items').innerHTML = cart.length ? cart.map((item, index) => `
+    <div class="cart-line">
+      <img src="${item.image}" alt="${item.name}">
+      <div class="cart-line-copy"><h4>${item.name}</h4><p>₹${item.price} each</p>
+        <div class="qty"><button data-action="minus" data-index="${index}">−</button><span>${item.qty}</span><button data-action="plus" data-index="${index}">+</button><button data-action="remove" data-index="${index}">Remove</button></div>
+      </div>
+    </div>`).join('') : '<div class="cart-empty"><p>Your bag is empty.</p><small>Add something delicious from the menu.</small></div>';
+
+  localStorage.setItem('crave-cart', JSON.stringify(cart));
+}
+
+function toast(message) {
+  const element = $('#toast');
+  element.textContent = message;
+  element.classList.add('show');
+  setTimeout(() => element.classList.remove('show'), 2200);
+}
+
+$('#food-grid').addEventListener('click', (event) => {
+  const button = event.target.closest('.add');
+  if (!button) return;
+  const food = foods[Number(button.dataset.index)];
+  const existing = cart.find(item => item.name === food[0]);
+  existing ? existing.qty++ : cart.push({ name: food[0], price: food[2], image: food[3], qty: 1 });
+  renderCart();
+  $('#cart-drawer').classList.add('open');
+  toast(`${food[0]} added`);
+});
+
+$('#cart-items').addEventListener('click', (event) => {
+  const button = event.target.closest('button');
+  if (!button) return;
+  const index = Number(button.dataset.index);
+  if (button.dataset.action === 'plus') cart[index].qty++;
+  if (button.dataset.action === 'minus') cart[index].qty--;
+  if (button.dataset.action === 'remove' || cart[index]?.qty < 1) cart.splice(index, 1);
+  renderCart();
+});
+
+$('#categories').addEventListener('click', (event) => {
+  const button = event.target.closest('.category');
+  if (!button) return;
+  document.querySelectorAll('.category').forEach(item => item.classList.remove('active'));
+  button.classList.add('active');
+  category = button.dataset.category;
+  render();
+});
+
+$('#food-search').addEventListener('input', render);
+$('#sort-food').addEventListener('change', render);
+$('#cart-btn').onclick = () => $('#cart-drawer').classList.add('open');
+$('#close-cart').onclick = () => $('#cart-drawer').classList.remove('open');
+$('#cart-overlay').onclick = () => $('#cart-drawer').classList.remove('open');
+$('#search-toggle').onclick = () => { document.querySelector('#menu').scrollIntoView({ behavior: 'smooth' }); setTimeout(() => $('#food-search').focus(), 400); };
+$('#scroll-how').onclick = () => $('#how').scrollIntoView({ behavior: 'smooth' });
+
+$('#checkout-btn').onclick = () => {
+  if (!cart.length) return toast('Your bag is empty');
+  $('#checkout-modal').classList.remove('hidden');
+};
+$('#close-modal').onclick = () => $('#checkout-modal').classList.add('hidden');
+
+$('#order-form').onsubmit = async (event) => {
+  event.preventDefault();
+  if (!cart.length) return toast('Your bag is empty');
+  const form = new FormData(event.target);
+  const items = cart.map(item => ({ name: item.name, price: item.price, image: item.image, qty: item.qty }));
+  const button = event.target.querySelector('button[type="submit"]');
+  button.disabled = true;
+  button.innerHTML = 'Placing order…';
+
+  try {
+    const response = await fetch(`${API}/order`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customer: { name: form.get('name'), phone: form.get('phone'), email: form.get('email'), address: form.get('address') }, items })
+    });
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || 'Order failed');
+    $('#form-message').textContent = `Order placed successfully · #${data.orderId}`;
+    cart = [];
+    renderCart();
+    event.target.reset();
+    toast(`Order #${data.orderId} placed`);
+  } catch (error) {
+    $('#form-message').textContent = 'Backend connection failed. Start the server with npm start.';
+    console.error(error);
+  } finally {
+    button.disabled = false;
+    button.innerHTML = 'Place order <i class="fa-solid fa-arrow-right"></i>';
+  }
+};
+
+render();

@@ -2,11 +2,18 @@ OFFLINEYOUTUBESTUDIO — START HERE
 ================================
 
 1. Extract the complete project ZIP to a normal folder (for example C:\OfflineYouTubeStudio).
-2. Install Python 3.11 x64 if it is not already installed.
+2. Install a 64-bit Python 3.11 or newer. The launcher automatically chooses the newest installed Python 3 version; you do not need exactly Python 3.11.
 3. Double-click ONE_CLICK.bat. The first run creates a private .venv and installs the small media dependencies.
 4. The Studio opens at http://127.0.0.1:8765.
 5. Use CHECK_GPU.bat to inspect the hardware and model recommendation.
 6. Run TEST.bat to execute the automated regression suite.
+
+PYTHON VERSION NOTES
+--------------------
+- The base Studio launcher selects the newest registered Python 3 version that is 3.11 or newer.
+- Python 3.14 can be used for the base Studio if its dependencies provide compatible packages.
+- Optional AI packages (especially CUDA-enabled PyTorch) may support a narrower range of Python versions. Their compatibility is separate from the base Studio.
+- The launcher creates a project-local .venv. It does not change or uninstall your system Python versions.
 
 NATIVE AI MODEL SETUP
 ---------------------

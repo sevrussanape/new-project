@@ -33,19 +33,34 @@ if errorlevel 1 goto fail
 exit /b 0
 
 :EnsurePython
-if exist ".venv\Scripts\python.exe" goto python_ready
+if exist ".venv\Scripts\python.exe" (
+  ".venv\Scripts\python.exe" -c "import sys" >nul 2>&1
+  if not errorlevel 1 goto python_ready
+  echo WARNING: Existing .venv Python is not launchable. Rebuilding the project environment.
+  if exist ".venv.broken" (
+    echo ERROR: .venv.broken already exists. Rename or remove that backup folder, then retry.
+    exit /b 1
+  )
+  ren ".venv" ".venv.broken"
+  if errorlevel 1 exit /b 1
+)
 where py >nul 2>&1
 if not errorlevel 1 (
-  py -3.11 --version >nul 2>&1
-  if not errorlevel 1 set "PY_LAUNCH=py -3.11"
+  rem The Python launcher selects the newest installed Python 3.x.
+  py -3 -c "import sys; raise SystemExit(0 if sys.version_info >= (3,11) else 1)" >nul 2>&1
+  if not errorlevel 1 set "PY_LAUNCH=py -3"
 )
 if not defined PY_LAUNCH (
   where python >nul 2>&1
-  if not errorlevel 1 set "PY_LAUNCH=python"
+  if not errorlevel 1 (
+    python -c "import sys; raise SystemExit(0 if sys.version_info >= (3,11) else 1)" >nul 2>&1
+    if not errorlevel 1 set "PY_LAUNCH=python"
+  )
 )
 if not defined PY_LAUNCH (
-  echo ERROR: Python 3.11 was not found.
-  echo Install Python 3.11 x64 from https://www.python.org/downloads/ and rerun.
+  echo ERROR: No usable Python 3.11-or-newer installation was found.
+  echo Install a supported 64-bit Python 3 version, then rerun this launcher.
+  echo The launcher automatically chooses the newest registered Python 3 version.
   exit /b 1
 )
 :python_ready
@@ -55,7 +70,7 @@ exit /b 0
 if exist ".venv\Scripts\python.exe" goto venv_ready
 if not defined PY_LAUNCH (
   where py >nul 2>&1
-  if not errorlevel 1 set "PY_LAUNCH=py -3.11"
+  if not errorlevel 1 set "PY_LAUNCH=py -3"
   if not defined PY_LAUNCH set "PY_LAUNCH=python"
 )
 echo Creating isolated Python environment...
@@ -63,6 +78,8 @@ echo Creating isolated Python environment...
 if errorlevel 1 exit /b 1
 :venv_ready
 ".venv\Scripts\python.exe" -m pip install --upgrade pip
+if errorlevel 1 exit /b 1
+".venv\Scripts\python.exe" -c "import sys; print('Project Python:',sys.version)"
 if errorlevel 1 exit /b 1
 exit /b 0
 
@@ -103,7 +120,7 @@ exit /b 0
 :check_hardware
 ".venv\Scripts\python.exe" hardware_scanner.py
 if errorlevel 1 goto fail
-".venv\Scripts\python.exe" -c "from hardware_scanner import scan_hardware; from model_selector import recommend_models; from engine.video_engine import ltx_capability; h=scan_hardware(); print('\\nMODEL ADVISOR:',recommend_models(h)['headline']); print('LTX:',ltx_capability(h))"
+".venv\Scripts\python.exe" -c "from hardware_scanner import scan_hardware; from model_selector import recommend_models; from engine.video_engine import ltx_capability; h=scan_hardware(); print('\nMODEL ADVISOR:',recommend_models(h)['headline']); print('LTX:',ltx_capability(h))"
 pause
 exit /b 0
 

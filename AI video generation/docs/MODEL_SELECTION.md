@@ -1,18 +1,52 @@
 # Hardware-aware model selection
 
-The scanner returns a JSON inventory with GPU name, total/free VRAM, driver, temperature, utilization, system RAM, free disk and optional PyTorch/CUDA state.
+## Responsibility boundaries
 
-The selector uses explicit policy gates, not a trained classifier:
+- `hardware_scanner.py` is read-only diagnostics. It queries `nvidia-smi`, OS memory/disk information and optional PyTorch CUDA availability. It does not install packages, download weights or change the machine.
+- `model_selector.py` evaluates the inventory against the catalog of **implemented runtime adapters**. It is a deterministic policy engine, not an ML classifier.
+- `studio.py` exposes the recommendation and refuses production jobs when no integrated model is eligible.
+- `engine/video_engine.py` calls the same selector again immediately before inference. The browser and API are not trusted as the only safety barrier.
 
-1. Is the model integrated into this runtime?
-2. Is an NVIDIA GPU and CUDA-enabled PyTorch available?
-3. Does total VRAM meet the 10 GB planning floor?
-4. Is at least 8.5 GB VRAM currently free?
-5. Is system RAM at least 32 GB?
-6. Is at least 50 GB disk space available?
+## Current integrated catalog
 
-If any required gate fails, the selector returns `no-validated-fit`. The UI still offers the Image Motion renderer, but labels it as non-generative media rendering.
+Only `ltx-video-diffusers` is currently integrated. It supports text-to-video and image-to-video through the in-process Diffusers adapter.
 
-For the user's GTX 1650 4 GB, the expected outcome is no validated LTX fit. 64 GB system RAM does not override the VRAM gate.
+| Gate | Current policy |
+|---|---:|
+| Total dedicated VRAM | At least 10 GB |
+| Currently free VRAM | At least 8.5 GB |
+| System RAM | At least 32 GB |
+| Free disk | At least 50 GB |
+| CUDA | CUDA-enabled PyTorch must be available |
+| Adapter | Must be registered as runtime-supported |
 
-The current LTX-2.5 generation is not in this runtime catalog: its official requirements list 32 GB+ NVIDIA VRAM and 100 GB free storage. The integrated candidate is the older LTX-Video Diffusers pipeline, whose published memory example is approximately 10 GB VRAM.
+Missing VRAM, free-memory, RAM, disk or CUDA evidence is not treated as a pass. Passing the policy only means the machine may attempt inference; it does not guarantee a successful run.
+
+## End-to-end flow
+
+```text
+hardware_scanner.scan_hardware()
+    → model_selector.recommend_models(inventory)
+        → studio API / UI recommendation
+            → engine.video_engine.ltx_capability(inventory)
+                → LTXRuntime.generate(...)
+```
+
+The adapter gate delegates to the same model selector used by the advisor. This prevents a machine from being shown as compatible by one component and rejected (or incorrectly accepted) by another due to duplicated rules.
+
+## Installation and downloads
+
+Scanning and recommending are intentionally separate from installation. Installing CUDA PyTorch/Diffusers is an explicit `ONE_CLICK.bat install-ltx` action. LTX weights are downloaded lazily on the first eligible generation request and cached by Hugging Face Hub. After packages and weights are present, the runtime can be used offline.
+
+Do not automatically download a model merely because a GPU name was detected. Hardware name alone does not establish available VRAM, free VRAM, CUDA compatibility, disk capacity or model support.
+
+## Adding another model safely
+
+A model can be added to `MODEL_CATALOG` only after:
+1. A real adapter is implemented and invoked by the generation dispatcher.
+2. The model's supported tasks, precision, dependencies and resource policy are documented.
+3. The adapter checks current hardware immediately before loading.
+4. A smoke test and failure/cleanup behavior are added.
+5. The README and hardware tests reflect the actual requirements.
+
+A catalog entry without a runtime adapter must never be selected as runnable.

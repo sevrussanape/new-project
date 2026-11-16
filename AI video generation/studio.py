@@ -22,6 +22,7 @@ from model_selector import recommend_models
 from engine.video_engine import ltx_capability
 from engine.job_manager import JobManager
 from engine.duration_planner import DURATION_PRESETS, plan_scene_slots, resolve_duration
+from engine.production_pipeline import CONTENT_TYPES
 
 ROOT = Path(__file__).resolve().parent
 WEB = ROOT / "web" / "index.html"
@@ -209,6 +210,95 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, plan)
             except (ValueError, json.JSONDecodeError) as exc:
                 self._send(400, {"error": f"Invalid timeline request: {exc}"})
+            return
+        if path == "/api/produce":
+            saved_paths = []
+            try:
+                body = self._json_body()
+                if not isinstance(body, dict):
+                    raise ValueError("Request JSON must be an object.")
+                topic = str(body.get("topic", "")).strip()
+                if not topic or len(topic) > 500:
+                    raise ValueError("Topic must contain 1–500 characters.")
+                content_type = str(body.get("content_type", "educational"))
+                if content_type not in CONTENT_TYPES:
+                    raise ValueError("Unsupported content type.")
+                preset = str(body.get("duration_preset", "60 seconds"))
+                duration = resolve_duration(preset, body.get("custom_duration_seconds"))
+                slots = plan_scene_slots(duration, max_scene_seconds=4, min_scene_seconds=2)
+                aspect = str(body.get("aspect", "9:16"))
+                fps = int(body.get("fps", 30))
+                if aspect not in ALLOWED_ASPECTS:
+                    raise ValueError("Unsupported aspect ratio.")
+                if fps not in {30, 60}:
+                    raise ValueError("Final export frame rate must be 30 or 60 FPS.")
+                transition = str(body.get("transition", "cut"))
+                if transition not in {"cut", "dissolve"}:
+                    raise ValueError("Transition must be cut or dissolve.")
+                scene_mode = str(body.get("scene_mode", "text"))
+                if scene_mode not in {"text", "image"}:
+                    raise ValueError("Scene mode must be text or image.")
+                inventory = scan_hardware(ROOT)
+                capability = ltx_capability(inventory)
+                if not capability["available"]:
+                    self._send(409, {"error": "Generative scene production is blocked by the active model safety checks.",
+                                     "blockers": capability["blockers"],
+                                     "note": "The production pipeline will not substitute still-image motion for generative scenes."})
+                    return
+                reference_path = None
+                if scene_mode == "image":
+                    data_url = str(body.get("image_data", ""))
+                    match = re.fullmatch(r"data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)", data_url)
+                    if not match:
+                        raise ValueError("Image-to-video production requires a PNG, JPEG or WebP reference image.")
+                    raw = base64.b64decode(match.group(2), validate=True)
+                    if len(raw) > MAX_IMAGE_BYTES:
+                        raise ValueError("Reference image exceeds 20 MB.")
+                    suffix = {"png": ".png", "jpeg": ".jpg", "webp": ".webp"}[match.group(1)]
+                    reference_path = UPLOADS / (uuid.uuid4().hex + suffix)
+                    reference_path.write_bytes(raw); saved_paths.append(reference_path)
+                    from PIL import Image
+                    with Image.open(reference_path) as image:
+                        if image.width * image.height > MAX_IMAGE_PIXELS:
+                            raise ValueError("Reference image exceeds the 40-megapixel limit.")
+                        image.verify()
+                music_path = None
+                music_data = str(body.get("music_data", ""))
+                if music_data:
+                    match = re.fullmatch(r"data:audio/(wav|mpeg|ogg|mp4|x-wav);base64,([A-Za-z0-9+/=]+)", music_data)
+                    if not match:
+                        raise ValueError("Music must be a WAV, MP3, OGG or M4A audio file.")
+                    raw = base64.b64decode(match.group(2), validate=True)
+                    if len(raw) > 12 * 1024 * 1024:
+                        raise ValueError("Music file exceeds 12 MB.")
+                    suffix = {"wav": ".wav", "x-wav": ".wav", "mpeg": ".mp3", "ogg": ".ogg", "mp4": ".m4a"}[match.group(1)]
+                    music_path = UPLOADS / (uuid.uuid4().hex + suffix)
+                    music_path.write_bytes(raw); saved_paths.append(music_path)
+                voice_models = body.get("voice_models") or {}
+                if not isinstance(voice_models, dict) or len(voice_models) > 4:
+                    raise ValueError("Voice model mapping must be an object with at most four speakers.")
+                voice_models = {str(k).upper(): str(v) for k, v in voice_models.items()}
+                task = {
+                    "mode": "production", "prompt": topic, "topic": topic,
+                    "content_type": content_type, "duration_preset": preset,
+                    "custom_duration_seconds": body.get("custom_duration_seconds"),
+                    "aspect": aspect, "fps": fps, "transition": transition,
+                    "scene_mode": scene_mode, "reference_image_path": str(reference_path) if reference_path else None,
+                    "music_path": str(music_path) if music_path else None,
+                    "voice_models": voice_models, "inventory": inventory,
+                }
+                job = JOBS.submit(task)
+                self._send(202, {"job": job, "message": "Local multi-scene production job accepted.",
+                                 "duration_seconds": duration, "scene_count": len(slots)})
+            except (ValueError, json.JSONDecodeError) as exc:
+                for saved in saved_paths: saved.unlink(missing_ok=True)
+                self._send(400, {"error": f"Invalid production request: {exc}"})
+            except RuntimeError as exc:
+                for saved in saved_paths: saved.unlink(missing_ok=True)
+                self._send(429, {"error": str(exc)})
+            except Exception as exc:
+                for saved in saved_paths: saved.unlink(missing_ok=True)
+                self._send(500, {"error": f"Production request failed: {exc}"})
             return
         if path != "/api/generate":
             self._send(404, {"error": "Not found"}); return

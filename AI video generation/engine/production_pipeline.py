@@ -288,7 +288,7 @@ def produce_video(task: dict[str, Any], output_path: str | Path, *,
     _concat_scenes(clips, visual, width=width, height=height,
                    fps=int(task.get("fps", 30)), transition=task.get("transition", "cut"))
     ffmpeg = _exe("ffmpeg")
-    subtitle_path = str(captions.resolve()).replace("\\\\", "/").replace(":", "\\:").replace("'", "\\'")
+    subtitle_path = str(captions.resolve()).replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
     command = [ffmpeg, "-y", "-i", str(visual), "-i", str(voice)]
     tempo = max(0.5, min(2.0, voice_duration / duration))
     audio_inputs = ["[voice]"]

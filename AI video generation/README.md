@@ -32,7 +32,8 @@
 | **Image → Video** | Use a reference image with the native LTX path on eligible hardware |
 | **Image Motion** | Turn a still image into an MP4 with smooth pan/zoom animation on lower-memory PCs |
 | **Hardware advisor** | Inspect GPU, VRAM, RAM, disk and CUDA availability before selecting a generation path |
-| **Local job queue** | Queue, monitor and cancel short renders and full production jobs; review results and download MP4 files |\n| **Multi-scene production** | Local scripts, scene prompts, generative clips, Piper narration, captions, music/SFX, transitions and MP4 assembly when prerequisites are configured |
+| **Local job queue** | Queue, monitor and cancel short renders and full production jobs; review results and download MP4 files |
+| **Multi-scene production** | Local scripts, scene prompts, generative clips, Piper narration, captions, music/SFX, transitions and MP4 assembly when prerequisites are configured |
 | **Local-first workflow** | Run the UI, API, queue and media engine in one Python application |
 
 > **Important distinction:** Image Motion creates an animated video from an existing image. It does **not** generate new visual content and is not presented as generative AI.
@@ -169,7 +170,8 @@ The server binds to loopback. The main endpoints are:
 | `/api/config` | GET | UI/API limits and supported modes |
 | `/api/hardware` | GET | Hardware inventory |
 | `/api/models` | GET | Model recommendation and runtime gates |
-| `/api/generate` | POST | Queue a short native video or Image Motion job |\n| `/api/produce` | POST | Queue a complete local multi-scene production |
+| `/api/generate` | POST | Queue a short native video or Image Motion job |
+| `/api/produce` | POST | Queue a complete local multi-scene production |
 | `/api/jobs` | GET | Recent local jobs |
 | `/api/jobs/{id}` | GET | Job status and result |
 | `/api/jobs/{id}/cancel` | POST | Cancel a queued/running job |

@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from .video_engine import generate_video
+from .production_pipeline import produce_video
 
 
 class JobManager:
@@ -126,7 +127,8 @@ class JobManager:
                 self._update(job_id, status="running", progress=0.01, message="Starting local engine")
                 output = self.output_dir / f"{job_id}.mp4"
                 try:
-                    result = generate_video(task or {}, output, cancel_event=cancel,
+                    runner = produce_video if (task or {}).get('mode') == 'production' else generate_video
+                    result = runner(task or {}, output, cancel_event=cancel,
                         progress=lambda p, m: self._update(job_id, progress=max(0.0, min(1.0, float(p))), message=str(m)[:300]))
                     self._update(job_id, status="completed", progress=1.0, message="Video ready",
                                  output=f"/outputs/{output.name}", engine=result.get("engine"),

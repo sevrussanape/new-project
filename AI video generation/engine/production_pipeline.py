@@ -280,7 +280,7 @@ def produce_video(task: dict[str, Any], output_path: str | Path, *,
                            capture_output=True, text=True, check=True)
     voice_duration = float(probe.stdout.strip())
     captions = root / "captions.srt"
-    write_captions(package["script"], voice_duration, captions)
+    write_captions(package["script"], duration, captions)
     aspect = task.get("aspect", "9:16")
     width, height = {"9:16": (1080, 1920), "16:9": (1920, 1080),
                      "1:1": (1080, 1080), "4:3": (1440, 1080), "3:2": (1620, 1080)}[aspect]
@@ -290,27 +290,27 @@ def produce_video(task: dict[str, Any], output_path: str | Path, *,
     ffmpeg = _exe("ffmpeg")
     subtitle_path = str(captions.resolve()).replace("\\\\", "/").replace(":", "\\:").replace("'", "\\'")
     command = [ffmpeg, "-y", "-i", str(visual), "-i", str(voice)]
-    audio_inputs = ["[1:a]"]
+    tempo = max(0.5, min(2.0, voice_duration / duration))
+    audio_inputs = ["[voice]"]
+    filters_audio = [f"[1:a]atempo={tempo:.4f},apad,atrim=duration={duration:.3f}[voice]"]
     music = task.get("music_path")
     if music and Path(music).is_file():
         command += ["-stream_loop", "-1", "-i", str(music)]
-        filters_audio = ["[2:a]volume=0.12[music]"]
+        filters_audio.append(f"[2:a]volume=0.12,atrim=duration={duration:.3f}[music]")
         audio_inputs.append("[music]")
-    else:
-        filters_audio = []
     for index, sfx in enumerate(task.get("sfx_paths") or []):
         if sfx and Path(sfx).is_file():
             command += ["-i", str(sfx)]
             input_index = 2 + (1 if music and Path(music).is_file() else 0) + index
-            filters_audio.append(f"[{input_index}:a]volume=0.65[sfx{index}]")
+            filters_audio.append(f"[{input_index}:a]volume=0.65,atrim=duration={duration:.3f}[sfx{index}]")
             audio_inputs.append(f"[sfx{index}]")
-    filters = [f"[0:v]subtitles='{subtitle_path}':force_style='FontName=Arial,FontSize=22,Outline=2,Shadow=1,Alignment=2,MarginV=45'[v]"]
+    filters = [f"[0:v]tpad=stop_mode=clone:stop_duration={duration:.3f},subtitles='{subtitle_path}':force_style='FontName=Arial,FontSize=22,Outline=2,Shadow=1,Alignment=2,MarginV=45'[v]"]
+    filters.extend(filters_audio)
     if len(audio_inputs) > 1:
-        filters.extend(filters_audio)
-        filters.append("".join(audio_inputs) + f"amix=inputs={len(audio_inputs)}:duration=longest:dropout_transition=2,apad[a]")
+        filters.append("".join(audio_inputs) + f"amix=inputs={len(audio_inputs)}:duration=longest:dropout_transition=2,atrim=duration={duration:.3f}[a]")
         audio_map = "[a]"
     else:
-        audio_map = "1:a"
+        audio_map = "[voice]"
     command += ["-filter_complex", ";".join(filters), "-map", "[v]", "-map", audio_map,
                 "-r", str(task.get("fps", 30)), "-c:v", "libx264", "-preset", "veryfast",
                 "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",

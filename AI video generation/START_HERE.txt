@@ -1,0 +1,43 @@
+OFFLINEYOUTUBESTUDIO — START HERE
+================================
+
+1. Extract the complete project ZIP to a normal folder (for example C:\OfflineYouTubeStudio).
+2. Install Python 3.11 x64 if it is not already installed.
+3. Double-click ONE_CLICK.bat. The first run creates a private .venv and installs the small media dependencies.
+4. The Studio opens at http://127.0.0.1:8765.
+5. Use CHECK_GPU.bat to inspect the hardware and model recommendation.
+6. Run TEST.bat to execute the automated regression suite.
+
+NATIVE AI MODEL SETUP
+---------------------
+- The web application and job queue run inside this project's Python process.
+- There is no external workflow server and no workflow JSON to import.
+- Native LTX inference is optional and is enabled only when the hardware scan passes the conservative VRAM/CUDA/disk gate.
+- On a compatible GPU, run ONE_CLICK.bat install-ltx to install CUDA PyTorch and Diffusers. The model weights download on the first LTX request; after caching, inference can run offline.
+- The current LTX Diffusers runtime uses the official Lightricks/LTX-Video model. Its published Diffusers example reports approximately 10 GB VRAM; this project gates at 10 GB total and 8.5 GB free VRAM.
+- GTX 1650 4 GB is below that gate. Text-to-video is intentionally disabled on that PC rather than pretending the model will fit.
+
+LOW-VRAM MODE
+-------------
+- Choose Image Motion and upload a PNG, JPEG or WebP image.
+- The built-in renderer creates a real MP4 with smooth pan/zoom camera motion using CPU resources.
+- This fallback is a media renderer, NOT generative AI. It is useful for animating stills and assembling YouTube scenes while using a low-memory GPU.
+
+YOUTUBE PIPELINE
+----------------
+- Ollama is needed for local script and metadata generation.
+- Piper and a local Piper voice are needed for narration.
+- FFmpeg is needed for subtitle burn-in and final muxing.
+- For a GTX 1650 4 GB, use --motion-image with CHANNEL_STUDIO.bat's Python script options or use --prompt-only; native LTX video generation is gated off.
+- Public niche research and YouTube upload require internet. Local generation can run offline after all dependencies and model weights are installed.
+
+TROUBLESHOOTING
+---------------
+- Studio log: logs\studio.log
+- Hardware scan: CHECK_GPU.bat
+- Native engine health: http://127.0.0.1:8765/api/health
+- Job list: http://127.0.0.1:8765/api/jobs
+- Persistent job history: studio_jobs.sqlite3 (automatically created)
+- Stop only this Studio process: STOP.bat
+
+The server binds to 127.0.0.1 only. Do not expose it to a public network without authentication and security hardening.

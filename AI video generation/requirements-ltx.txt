@@ -1,0 +1,6 @@
+# Install CUDA-enabled PyTorch separately with the command appropriate for the host GPU.
+diffusers>=0.35.0
+transformers>=4.45.0
+accelerate>=1.0.0
+safetensors>=0.4.0
+huggingface_hub>=0.26.0

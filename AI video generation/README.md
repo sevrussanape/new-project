@@ -32,10 +32,31 @@
 | **Image → Video** | Use a reference image with the native LTX path on eligible hardware |
 | **Image Motion** | Turn a still image into an MP4 with smooth pan/zoom animation on lower-memory PCs |
 | **Hardware advisor** | Inspect GPU, VRAM, RAM, disk and CUDA availability before selecting a generation path |
-| **Local job queue** | Queue, monitor and cancel jobs; review recent results and download MP4 files |
+| **Local job queue** | Queue, monitor and cancel short renders and full production jobs; review results and download MP4 files |\n| **Multi-scene production** | Local scripts, scene prompts, generative clips, Piper narration, captions, music/SFX, transitions and MP4 assembly when prerequisites are configured |
 | **Local-first workflow** | Run the UI, API, queue and media engine in one Python application |
 
 > **Important distinction:** Image Motion creates an animated video from an existing image. It does **not** generate new visual content and is not presented as generative AI.
+
+## 🎬 Full local production pipeline
+
+The Studio now includes a multi-scene production endpoint and browser controls. It can orchestrate these local stages when their prerequisites are installed:
+
+1. **Script package:** a local Ollama model writes the script, hook, title, and scene prompts for educational, facts, story, documentary, motivational, podcast, product-explainer, news-style, how-to, and Shorts formats.
+2. **Scene generation:** the configured native video engine generates short clips for each scene. A failed or unavailable generative engine stops the job; Image Motion is not substituted.
+3. **Narration:** local Piper generates speech. Dialogue labelled `SPEAKER 1:` and `SPEAKER 2:` can use separate local `.onnx` voice files supplied in the voice mapping.
+4. **Editing and audio:** FFmpeg assembles the scenes, applies cuts or dissolves, burns subtitles, and mixes optional local music and up to five sound effects.
+5. **Export and project data:** portrait, landscape, square and other supported aspect ratios can be exported at 30 or 60 FPS. A `timeline.json` project description is saved beside the MP4 and can be opened from job history.
+
+### Local prerequisites
+
+- Ollama installed and running at `http://127.0.0.1:11434`, with the selected model already downloaded. Set `OLLAMA_MODEL` to choose it.
+- Piper installed locally and available on `PATH`; set `PIPER_MODEL` to a local voice `.onnx` file.
+- FFmpeg and FFprobe available on `PATH`, with subtitle/libass support for burned-in captions.
+- The video model selected by the existing hardware/model setup must be installed and pass its runtime safety gate.
+
+The Studio UI can submit a complete production job through `POST /api/produce`. Job history exposes the resulting MP4 and the project timeline at `/projects/{job_id}/timeline.json`.
+
+**Validation status:** the pipeline and unit tests are committed, but actual multi-scene inference, Piper voice compatibility, FFmpeg filters, 30/60 FPS export, and full Windows operation still need to be run on the target PC. Long projects can take substantial time and storage because each scene is generated separately.
 
 ## 🖥️ Hardware & honest expectations
 
@@ -148,7 +169,7 @@ The server binds to loopback. The main endpoints are:
 | `/api/config` | GET | UI/API limits and supported modes |
 | `/api/hardware` | GET | Hardware inventory |
 | `/api/models` | GET | Model recommendation and runtime gates |
-| `/api/generate` | POST | Queue an LTX or Image Motion job |
+| `/api/generate` | POST | Queue a short native video or Image Motion job |\n| `/api/produce` | POST | Queue a complete local multi-scene production |
 | `/api/jobs` | GET | Recent local jobs |
 | `/api/jobs/{id}` | GET | Job status and result |
 | `/api/jobs/{id}/cancel` | POST | Cancel a queued/running job |

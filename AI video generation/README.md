@@ -1,244 +1,201 @@
-<!--
-  OfflineYouTubeStudio
-  Local-first video creation with transparent hardware limits.
--->
-
-<div align="center">
-
 # ◈ OfflineYouTubeStudio
 
-### Your local video workspace. Your hardware. Your files.
+**A local-first video creation workspace with an honest hardware advisor, a native LTX-Video adapter, and a non-generative image-motion renderer.**
 
-**A native Python video studio with hardware-aware model selection, an in-process LTX adapter, and a low-resource image-motion renderer.**
+![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB)
+![Runtime](https://img.shields.io/badge/Runtime-Local%20Python-3776AB)
+![Platform](https://img.shields.io/badge/Platform-Windows-0078D4)
 
-<p>
-  <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.11+">
-  <img src="https://img.shields.io/badge/Run-Local--first-9BCF53?style=for-the-badge" alt="Local first">
-  <img src="https://img.shields.io/badge/Backend-Native%20Python-20232A?style=for-the-badge" alt="Native Python backend">
-  <img src="https://img.shields.io/badge/Platform-Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
-</p>
+## What this project does
 
-[Features](#-what-you-can-do) · [Hardware guide](#-hardware--honest-expectations) · [Install](#-get-started) · [API](#-local-api) · [Docs](#-documentation)
-
-</div>
-
----
-
-## ✨ What you can do
-
-| Feature | What it does |
+| Feature | Behavior |
 |---|---|
-| **Text → Video** | Generate short clips with the integrated LTX-Video Diffusers adapter when the GPU passes the runtime safety checks |
-| **Image → Video** | Use a reference image with the native LTX path on eligible hardware |
-| **Image Motion** | Turn a still image into an MP4 with smooth pan/zoom animation on lower-memory PCs |
-| **Hardware advisor** | Inspect GPU, VRAM, RAM, disk and CUDA availability before selecting a generation path |
-| **Local job queue** | Queue, monitor and cancel short renders and full production jobs; review results and download MP4 files |
-| **Multi-scene production** | Local scripts, scene prompts, generative clips, Piper narration, captions, music/SFX, transitions and MP4 assembly when prerequisites are configured |
-| **Local-first workflow** | Run the UI, API, queue and media engine in one Python application |
+| Text-to-video | Native LTX-Video Diffusers pipeline, only when the integrated model passes the shared hardware/runtime gate |
+| Image-to-video | LTX-Video with a supplied reference image, under the same gate |
+| Image Motion | Creates a camera-motion MP4 from a still image; **not** generative AI |
+| Hardware advisor | Reads NVIDIA GPU/VRAM, system RAM, free disk and optional PyTorch CUDA status |
+| Model selection | Selects only a model that has a real adapter in this codebase and passes all planning gates |
+| Production pipeline | Local script generation, per-scene video, Piper narration, captions, music/SFX, transitions and MP4 assembly when dependencies are configured |
+| Job queue | Local sequential queue, progress, cancellation, history and outputs |
 
-> **Important distinction:** Image Motion creates an animated video from an existing image. It does **not** generate new visual content and is not presented as generative AI.
+The application never silently substitutes Image Motion for generative video. If no integrated generative model is safe to run, text/image generation and full AI production are blocked with an explanation.
 
-## 🎬 Full local production pipeline
+## Hardware detection, model selection and runtime: how they connect
 
-The Studio now includes a multi-scene production endpoint and browser controls. It can orchestrate these local stages when their prerequisites are installed:
+This is the actual control path:
 
-1. **Script package:** a local Ollama model writes the script, hook, title, and scene prompts for educational, facts, story, documentary, motivational, podcast, product-explainer, news-style, how-to, and Shorts formats.
-2. **Scene generation:** the configured native video engine generates short clips for each scene. A failed or unavailable generative engine stops the job; Image Motion is not substituted.
-3. **Narration:** local Piper generates speech. Dialogue labelled `SPEAKER 1:` and `SPEAKER 2:` can use separate local `.onnx` voice files supplied in the voice mapping.
-4. **Editing and audio:** FFmpeg assembles the scenes, applies cuts or dissolves, burns subtitles, and mixes optional local music and up to five sound effects.
-5. **Export and project data:** portrait, landscape, square and other supported aspect ratios can be exported at 30 or 60 FPS. A `timeline.json` project description is saved beside the MP4 and can be opened from job history.
+```text
+hardware_scanner.py
+  └─ reads GPU/VRAM, RAM, disk, CUDA facts (no installs or downloads)
+       ↓
+model_selector.py
+  └─ ranks only models with an integrated runtime adapter
+       ↓
+studio.py /api/models and /api/produce
+  └─ shows the recommendation and refuses unsafe jobs
+       ↓
+engine/video_engine.py
+  └─ re-runs the SAME selector gate immediately before inference
+       ↓
+LTXRuntime (Diffusers) → generated scene clips
+```
 
-### Local prerequisites
+**Important:** the hardware scanner is a detector, not an installer. It must not download multi-gigabyte weights or install CUDA packages during a hardware scan. Model/dependency installation is an explicit user action. This separation avoids unexpected downloads and prevents a hardware name alone from being treated as proof that a model can run.
 
-- Ollama installed and running at `http://127.0.0.1:11434`, with the selected model already downloaded. Set `OLLAMA_MODEL` to choose it.
-- Piper installed locally and available on `PATH`; set `PIPER_MODEL` to a local voice `.onnx` file.
-- FFmpeg and FFprobe available on `PATH`, with subtitle/libass support for burned-in captions.
-- The video model selected by the existing hardware/model setup must be installed and pass its runtime safety gate.
+At present, **LTX-Video is the only integrated generative video adapter**. The selector does not advertise experimental models as runnable. Adding another model requires implementing and testing its adapter, declaring its requirements, and registering it in the model catalog. Merely detecting an RTX GPU does not make an unsupported model available.
 
-The Studio UI can submit a complete production job through `POST /api/produce`. Job history exposes the resulting MP4 and the project timeline at `/projects/{job_id}/timeline.json`.
+The model advisor and runtime now share the same eligibility decision. Missing free-VRAM telemetry is treated as unknown/unsafe rather than assumed to be sufficient. Runtime checks still run immediately before model loading.
 
-**Validation status:** the pipeline and unit tests are committed, but actual multi-scene inference, Piper voice compatibility, FFmpeg filters, 30/60 FPS export, and full Windows operation still need to be run on the target PC. Long projects can take substantial time and storage because each scene is generated separately.
+## Complete local production pipeline
 
-## 🖥️ Hardware & honest expectations
+The browser UI exposes a multi-scene production workflow:
 
-The integrated LTX adapter uses a conservative planning gate:
+1. A local Ollama model creates the title, hook, script and visual prompts for educational, facts, story, documentary, motivational, podcast, product-explainer, news-style, how-to and Shorts formats.
+2. The integrated generative video adapter creates short clips for each scene. A failed model check stops the job; still-image motion is not substituted.
+3. Local Piper creates narration. Scripts with `SPEAKER 1:` / `SPEAKER 2:` labels can use separate local Piper voice models.
+4. FFmpeg assembles scenes, applies cuts/dissolves, burns subtitles and mixes optional local music and sound effects.
+5. The final export supports portrait, landscape, square and other configured aspect ratios at 30 or 60 FPS. Scene clips, script, captions and `timeline.json` are kept in the project output folder.
+
+### Required local tools for production
+
+- **Ollama:** installed and running at `http://127.0.0.1:11434`; download a local language model once and set `OLLAMA_MODEL` if needed.
+- **Piper:** installed locally and on `PATH`; set `PIPER_MODEL` to a local voice `.onnx` file.
+- **FFmpeg + FFprobe:** installed and on `PATH`; subtitle burn-in requires FFmpeg with libass support.
+- **Video model runtime:** CUDA-enabled PyTorch, Diffusers, Transformers, Accelerate and the LTX model weights, on hardware that passes the selector.
+
+Ollama/Piper/FFmpeg are not silently downloaded by the GPU scanner. They are separate prerequisites. The first model-weight download requires internet access; once all required packages and weights are cached, generation can run offline.
+
+## Hardware requirements and realistic expectations
+
+The integrated LTX adapter uses conservative planning requirements:
 
 - NVIDIA GPU with CUDA-enabled PyTorch
-- **10 GB total VRAM** and at least **8.5 GB currently free**
-- At least **32 GB system RAM**
-- At least **50 GB free disk space**
+- 10 GB total VRAM and at least 8.5 GB currently free
+- 32 GB system RAM
+- Approximately 50 GB free disk space
 
-Passing these checks only means the machine may be suitable for a guarded test. It is **not a guarantee** of successful inference. Validate with a short generation on the target machine.
+These are **safety gates, not a promise** that inference will succeed. Architecture, driver, CUDA/PyTorch compatibility, other GPU workloads, model revision and resolution all matter. A compatible GPU should first be tested with a short clip.
 
-| Your hardware | Expected experience |
+| Hardware situation | Expected behavior |
 |---|---|
-| **GTX 1650 4 GB + 64 GB RAM** | Studio and hardware advisor can run; LTX is blocked by the VRAM safety gate; Image Motion can render still-image MP4s |
-| **10–12 GB NVIDIA GPU** | May pass the planning gate; test a short clip first |
-| **16 GB+ NVIDIA GPU** | More memory headroom; model/runtime compatibility still matters |
-| **CPU-only** | Hardware scan and Image Motion; LTX diffusion generation is disabled |
+| 4 GB GPU | LTX blocked; Image Motion remains available |
+| RTX 4050 with 6 GB VRAM (common laptop configuration) | LTX blocked by the 10 GB planning floor; Image Motion remains available |
+| GPU with 10–12 GB VRAM | May meet the total-VRAM floor, but must also meet free VRAM, RAM, disk and CUDA checks; test first |
+| GPU with 16 GB+ VRAM | More headroom; still subject to the same checks and model/runtime compatibility |
+| CPU-only | Studio and Image Motion; native LTX generation is disabled |
 
-<details>
-<summary><strong>Why the GTX 1650 4 GB is not enough for LTX</strong></summary>
+**Do not bypass the gate to force LTX onto a lower-memory GPU.** System RAM is not interchangeable with dedicated VRAM. The selector currently has one integrated model, so it cannot automatically switch to an unimplemented low-VRAM model.
 
-System RAM cannot replace dedicated GPU VRAM. CPU offload can reduce GPU memory pressure, but it does not make a 4 GB GPU equivalent to a supported high-memory GPU. Do not bypass the runtime gate or force-load LTX on hardware that fails it.
+## Get started (Windows)
 
-The legacy LTX-Video Diffusers memory example is approximately 10 GB VRAM. LTX-2.5 is a newer model family with substantially higher published requirements and is not part of this adapter's model catalog.
-
-</details>
-
-## 🚀 Get started
-
-### Windows
-
-1. Install a **64-bit Python 3.11 or newer**. The launcher automatically selects the newest installed Python 3 version it can run; you do not need to install exactly Python 3.11.
-2. Download or clone this repository and open the `AI video generation` project folder.
-3. Run the installer:
+1. Install 64-bit Python 3.11 or newer.
+2. Open the `AI video generation` folder.
+3. Install the lightweight Studio dependencies:
 
    ```bat
    ONE_CLICK.bat install
    ```
 
-4. Start the studio:
+4. Launch:
 
    ```bat
    ONE_CLICK.bat start
    ```
 
-5. Open the local app at **http://127.0.0.1:8765** if it does not open automatically.
+5. Open [http://127.0.0.1:8765](http://127.0.0.1:8765).
 
-Optional checks:
+### Hardware check
+
+Run:
 
 ```bat
 CHECK_GPU.bat
-TEST.bat
 ```
 
-The base application dependencies are kept lightweight. Python 3.14 may work for the base Studio, but optional AI packages such as CUDA-enabled PyTorch have their own Python-version and CUDA compatibility limits. The LTX installer can therefore require a supported Python environment even when the base Studio runs on a newer Python.
+This prints detected hardware, the selected integrated model (if any), and why a model is blocked. It does not install software or download model weights.
 
-The base installation does not need to install a large AI framework or download LTX weights just to open the Studio.
+### Install the optional LTX runtime
 
-### Enable LTX on compatible hardware
-
-On a supported CUDA machine, run:
+On hardware you expect to meet the LTX gate, explicitly run:
 
 ```bat
 ONE_CLICK.bat install-ltx
 ```
 
-The LTX adapter loads lazily. Model weights are fetched on the first eligible generation request and can be reused from the local cache afterward. The first download requires internet access and substantial disk space.
+This installs CUDA-enabled PyTorch and the Diffusers dependencies. The model weights are fetched on the first eligible generation request. This installer does not override the hardware gate. The provided installer currently targets the CUDA 12.6 PyTorch wheel index; verify compatibility with your NVIDIA driver and Python version.
 
-**Default conservative profile:** up to 4 seconds, 12 FPS, 512-pixel long edge and 20 denoising steps.
+## Image Motion on lower-memory PCs
 
-## 🎞️ Image Motion on lower-memory PCs
-
-1. Open **Image Motion** in the Studio.
-2. Upload a PNG, JPEG or WebP image (up to 20 MB).
+1. Open Image Motion in the Studio.
+2. Upload a PNG, JPEG or WebP.
 3. Choose aspect ratio, duration and frame rate.
 4. Render and preview/download the MP4.
 
-This path uses Pillow and the FFmpeg binary supplied by `imageio-ffmpeg`. It animates the supplied still image with a deterministic camera move; it does not synthesize new scenes or objects.
+This uses Pillow and imageio-ffmpeg to animate a still image with a deterministic camera move. It does not create new objects, scenes or motion through a generative model.
 
-## 🧩 How it is built
-
-```text
-Browser UI (web/)
-      │  loopback HTTP / JSON
-      ▼
-studio.py  ───── hardware_scanner.py ─── model_selector.py
-      │
-      ▼
-engine/job_manager.py
-      │
-      ▼
-engine/video_engine.py
-      ├── LTX-Video · PyTorch + Diffusers (eligible CUDA GPUs)
-      └── Image Motion · Pillow + imageio-ffmpeg
-      │
-      ▼
-outputs/*.mp4
-```
-
-The app uses one local Python process for the web API and job queue. Jobs run sequentially to reduce GPU memory pressure. The runtime repeats its own hardware capability checks immediately before model loading; the UI's disabled state is not the only safety control.
-
-## 🔌 Local API
-
-The server binds to loopback. The main endpoints are:
+## Local API
 
 | Endpoint | Method | Purpose |
 |---|:---:|---|
-| `/api/health` | GET | Engine, hardware and LTX capability |
-| `/api/config` | GET | UI/API limits and supported modes |
-| `/api/hardware` | GET | Hardware inventory |
-| `/api/models` | GET | Model recommendation and runtime gates |
-| `/api/generate` | POST | Queue a short native video or Image Motion job |
-| `/api/produce` | POST | Queue a complete local multi-scene production |
-| `/api/jobs` | GET | Recent local jobs |
-| `/api/jobs/{id}` | GET | Job status and result |
-| `/api/jobs/{id}/cancel` | POST | Cancel a queued/running job |
-| `/outputs/{file}.mp4` | GET | Preview or download a result |
+| `/api/health` | GET | Application status and hardware report |
+| `/api/hardware` | GET | Raw hardware inventory |
+| `/api/models` | GET | Model recommendation, runtime gate and fallback |
+| `/api/config` | GET | UI/API limits and modes |
+| `/api/durations` | GET | Duration presets and custom range |
+| `/api/plan` | POST | Build a scene-slot plan |
+| `/api/generate` | POST | Queue a short generative or Image Motion job |
+| `/api/produce` | POST | Queue a full local multi-scene production |
+| `/api/jobs` | GET | Recent jobs |
+| `/api/jobs/{id}` | GET | Job state |
+| `/api/jobs/{id}/cancel` | POST | Cancel an active job |
+| `/projects/{id}/timeline.json` | GET | Read generated project timeline metadata |
+| `/outputs/{file}.mp4` | GET | Preview/download an MP4 |
 
-Example Image Motion request:
-
-```json
-{
-  "mode": "image-motion",
-  "prompt": "Slow cinematic push-in",
-  "image_data": "data:image/jpeg;base64,...",
-  "aspect": "16:9",
-  "duration": 4,
-  "fps": 24,
-  "motion": "balanced"
-}
-```
-
-## 📁 Project layout
+## Project layout
 
 ```text
 AI video generation/
-├── engine/          # Job manager and video runtime
-├── web/             # Browser interface
-├── tests/           # Automated regression tests
-├── docs/            # Architecture and model-selection notes
-├── studio.py        # Local web server and JSON API
-├── hardware_scanner.py
-├── model_selector.py
-├── channel_pipeline.py
-├── ONE_CLICK.bat    # Windows setup and launch
-├── CHECK_GPU.bat    # Hardware report
-└── TEST.bat         # Test runner
+├── engine/             # Runtime adapter, queue, duration and production pipeline
+├── web/                # Browser interface
+├── tests/              # Automated regression tests
+├── docs/               # Architecture and model-selection documentation
+├── studio.py           # Local HTTP server and API
+├── hardware_scanner.py # Side-effect-free hardware inventory
+├── model_selector.py   # Integrated-model eligibility and recommendation
+├── channel_pipeline.py # Local channel workflow CLI
+├── ONE_CLICK.bat       # Windows install and launch
+├── CHECK_GPU.bat       # Hardware/model diagnostic
+└── TEST.bat            # Test runner
 ```
 
-Generated files, local databases, logs, uploaded images and cached model weights are runtime data; they should not be committed as source files.
+Generated outputs, uploads, logs, SQLite job data and cached model weights are runtime data and should not be committed.
 
-## 🧪 Tests & development
+## Tests
 
-Run the regression suite from the project directory:
+From the project directory:
+
+```bat
+TEST.bat
+```
+
+Or:
 
 ```bash
 python -m unittest discover -s tests -v
+python -m compileall -q .
 ```
 
-Compile the Python modules:
+Automated tests validate policy and code paths. They do not prove CUDA inference, voice-model compatibility, FFmpeg filter support or end-to-end Windows production. Those need to be tested on the target PC.
 
-```bash
-python -m py_compile studio.py hardware_scanner.py model_selector.py channel_pipeline.py engine/*.py
-```
+## Current limitations (read before relying on it)
 
-The repository includes tests for model selection, hardware gates, job management and the video engine. **The presence of tests does not mean GPU inference has been validated:** a compatible NVIDIA GPU, CUDA PyTorch, Diffusers and cached model weights are required to validate actual LTX generation. Windows launchers should also be tested on the target Windows machine.
+- Only LTX-Video is integrated for genuine generative video. No low-VRAM generative adapter is currently included.
+- A typical 6 GB RTX 4050 laptop GPU does not meet the current LTX gate. The app should report this accurately rather than claiming it can run AI video.
+- The project timeline is currently exported as JSON metadata; it is **not yet a full interactive clip-editing timeline**.
+- Full production depends on locally installed Ollama, Piper, FFmpeg/FFprobe and a video model runtime.
+- The first package/model downloads require internet. Offline use is possible only after all required dependencies and model files are cached.
+- The LTX adapter and full production workflow still require an actual target-PC GPU/media end-to-end validation.
 
-## 📚 Documentation
+## License and attribution
 
-- [Architecture](docs/ARCHITECTURE.md) — components, runtime boundaries and design decisions
-- [Hardware-aware model selection](docs/MODEL_SELECTION.md) — explicit model eligibility gates
-
-## ⚠️ Current limitations
-
-- The GTX 1650 4 GB is below the LTX safety threshold; use Image Motion on that hardware.
-- Image Motion is still-image animation, not generative video.
-- The LTX adapter is implemented but has **not** been physically validated on the target Windows GPU.
-- First-time model download requires internet; cached weights can be reused offline.
-- Optional YouTube research/OAuth, Ollama and Piper workflows have their own external requirements.
-
-## 📜 License & attribution
-
-Check the license terms for LTX-Video and every optional dependency before commercial use or redistribution of model weights. OfflineYouTubeStudio is an independent integration and is not affiliated with Lightricks.
+Review the license terms for LTX-Video and every optional dependency/model before commercial use or redistribution of weights. OfflineYouTubeStudio is an independent integration and is not affiliated with Lightricks.

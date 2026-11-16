@@ -157,6 +157,15 @@ class Handler(BaseHTTPRequestHandler):
             if not job: self._send(404, {"error": "Job not found"})
             else: self._send(200, job)
             return
+        if path.startswith("/projects/") and path.endswith("/timeline.json"):
+            parts = path.strip("/").split("/")
+            if len(parts) != 3 or not re.fullmatch(r"[a-f0-9]{12}", parts[1]):
+                self._send(404, {"error": "Project not found"}); return
+            timeline = (OUTPUTS / (parts[1] + "_project") / "timeline.json").resolve()
+            if timeline.parent.parent != OUTPUTS.resolve() or not timeline.is_file():
+                self._send(404, {"error": "Project timeline is not available yet"}); return
+            self._send(200, json.loads(timeline.read_text(encoding="utf-8")))
+            return
         if path.startswith("/outputs/"):
             name = Path(path.rsplit("/", 1)[-1]).name
             target = (OUTPUTS / name).resolve()
@@ -278,13 +287,27 @@ class Handler(BaseHTTPRequestHandler):
                 if not isinstance(voice_models, dict) or len(voice_models) > 4:
                     raise ValueError("Voice model mapping must be an object with at most four speakers.")
                 voice_models = {str(k).upper(): str(v) for k, v in voice_models.items()}
+                sfx_paths = []
+                sfx_data = body.get("sfx_data") or []
+                if not isinstance(sfx_data, list) or len(sfx_data) > 5:
+                    raise ValueError("Upload no more than five sound-effect files.")
+                for sound_data in sfx_data:
+                    match = re.fullmatch(r"data:audio/(wav|mpeg|ogg|mp4|x-wav);base64,([A-Za-z0-9+/=]+)", str(sound_data))
+                    if not match:
+                        raise ValueError("Sound effects must be WAV, MP3, OGG or M4A audio files.")
+                    raw = base64.b64decode(match.group(2), validate=True)
+                    if len(raw) > 8 * 1024 * 1024:
+                        raise ValueError("Each sound effect must be 8 MB or smaller.")
+                    suffix = {"wav": ".wav", "x-wav": ".wav", "mpeg": ".mp3", "ogg": ".ogg", "mp4": ".m4a"}[match.group(1)]
+                    sound_path = UPLOADS / (uuid.uuid4().hex + suffix)
+                    sound_path.write_bytes(raw); saved_paths.append(sound_path); sfx_paths.append(str(sound_path))
                 task = {
                     "mode": "production", "prompt": topic, "topic": topic,
                     "content_type": content_type, "duration_preset": preset,
                     "custom_duration_seconds": body.get("custom_duration_seconds"),
                     "aspect": aspect, "fps": fps, "transition": transition,
                     "scene_mode": scene_mode, "reference_image_path": str(reference_path) if reference_path else None,
-                    "music_path": str(music_path) if music_path else None,
+                    "music_path": str(music_path) if music_path else None, "sfx_paths": sfx_paths,
                     "voice_models": voice_models, "inventory": inventory,
                 }
                 job = JOBS.submit(task)

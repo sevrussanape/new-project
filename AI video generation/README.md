@@ -68,7 +68,7 @@ The legacy LTX-Video Diffusers memory example is approximately 10 GB VRAM. LTX-2
 
 ### Windows
 
-1. Install **Python 3.11 x64**.
+1. Install a **64-bit Python 3.11 or newer**. The launcher automatically selects the newest installed Python 3 version it can run; you do not need to install exactly Python 3.11.
 2. Download or clone this repository and open the `AI video generation` project folder.
 3. Run the installer:
 
@@ -91,7 +91,9 @@ CHECK_GPU.bat
 TEST.bat
 ```
 
-The base installation is intended to install the lightweight image-rendering requirements. It does not need to install a large AI framework or download LTX weights just to open the Studio.
+The base application dependencies are kept lightweight. Python 3.14 may work for the base Studio, but optional AI packages such as CUDA-enabled PyTorch have their own Python-version and CUDA compatibility limits. The LTX installer can therefore require a supported Python environment even when the base Studio runs on a newer Python.
+
+The base installation does not need to install a large AI framework or download LTX weights just to open the Studio.
 
 ### Enable LTX on compatible hardware
 

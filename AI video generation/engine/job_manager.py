@@ -144,12 +144,14 @@ class JobManager:
         with self._lock:
             task = self._tasks.pop(job_id, None)
             self._cancel.pop(job_id, None)
-        image_path = (task or {}).get("image_path") if isinstance(task, dict) else None
-        if image_path:
-            try:
-                Path(image_path).unlink(missing_ok=True)
-            except OSError:
-                pass
+        if isinstance(task, dict):
+            for key in ("image_path", "reference_image_path", "music_path"):
+                media_path = task.get(key)
+                if media_path:
+                    try:
+                        Path(media_path).unlink(missing_ok=True)
+                    except OSError:
+                        pass
 
     def get(self, job_id: str) -> dict[str, Any] | None:
         with self._lock:

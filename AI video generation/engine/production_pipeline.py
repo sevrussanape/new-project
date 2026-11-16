@@ -159,7 +159,7 @@ def _make_voice(script: str, output: Path, model_path: str | None = None) -> Non
 
 def _render_dialogue(script: str, output: Path, voice_models: dict[str, str]) -> None:
     """Render SPEAKER 1:/SPEAKER 2: dialogue with separate local Piper voices."""
-    segments = re.split(r"(?im)^\s*(SPEAKER\s+\\d+)\s*:\s*", script)
+    segments = re.split(r"(?im)^\s*(SPEAKER\s+\d+)\s*:\s*", script)
     if len(segments) < 3:
         _make_voice(script, output)
         return

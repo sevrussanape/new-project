@@ -21,6 +21,7 @@ from hardware_scanner import scan_hardware
 from model_selector import recommend_models
 from engine.video_engine import ltx_capability
 from engine.job_manager import JobManager
+from engine.duration_planner import DURATION_PRESETS, plan_scene_slots, resolve_duration
 
 ROOT = Path(__file__).resolve().parent
 WEB = ROOT / "web" / "index.html"
@@ -66,6 +67,35 @@ def machine_report() -> dict:
     }
 
 
+def build_duration_plan(body: dict) -> dict:
+    """Validate a full-video target and return a contiguous short-scene timeline.
+
+    This is a planning API; it does not claim to generate or assemble the scenes.
+    """
+    if not isinstance(body, dict):
+        raise ValueError("Request JSON must be an object.")
+    preset = str(body.get("duration_preset", "60 seconds"))
+    custom = body.get("custom_duration_seconds")
+    total = resolve_duration(preset, custom)
+    try:
+        max_scene = int(body.get("max_scene_seconds", 4))
+        min_scene = int(body.get("min_scene_seconds", 2))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Scene duration limits must be whole numbers.") from exc
+    slots = plan_scene_slots(total, max_scene_seconds=max_scene, min_scene_seconds=min_scene)
+    return {
+        "total_duration_seconds": total,
+        "scene_count": len(slots),
+        "scene_slots": [
+            {"index": slot.index, "start_seconds": slot.start_seconds,
+             "duration_seconds": slot.duration_seconds}
+            for slot in slots
+        ],
+        "status": "planned",
+        "note": "Timeline planning only. Scene generation, audio, editing and export are separate pipeline stages.",
+    }
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "OfflineYouTubeStudio/2.0"
 
@@ -104,6 +134,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Referrer-Policy", "no-referrer")
             self.send_header("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
             self.end_headers(); self.wfile.write(raw); return
+        if path == "/api/durations":
+            self._send(200, {"presets": DURATION_PRESETS, "custom_min_seconds": 5,
+                             "custom_max_seconds": 1800, "default_preset": "60 seconds"})
+            return
         if path == "/api/config":
             self._send(200, {"limits": {"max_prompt_chars": MAX_PROMPT_CHARS, "max_image_mb": MAX_IMAGE_BYTES // (1024 * 1024), "max_image_pixels": MAX_IMAGE_PIXELS, "max_waiting_jobs": JOBS.max_pending}, "modes": ["text", "image", "image-motion"], "aspects": sorted(ALLOWED_ASPECTS)})
             return
@@ -168,6 +202,13 @@ class Handler(BaseHTTPRequestHandler):
             job_id = path.split("/")[-2]
             if JOBS.cancel(job_id): self._send(200, {"cancelled": True, "job_id": job_id})
             else: self._send(409, {"error": "Job cannot be cancelled because it is no longer active."})
+            return
+        if path == "/api/plan":
+            try:
+                plan = build_duration_plan(self._json_body())
+                self._send(200, plan)
+            except (ValueError, json.JSONDecodeError) as exc:
+                self._send(400, {"error": f"Invalid timeline request: {exc}"})
             return
         if path != "/api/generate":
             self._send(404, {"error": "Not found"}); return

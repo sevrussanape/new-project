@@ -2,6 +2,8 @@
 
 **A local-first video production workspace with hardware-aware model selection and a native Python inference backend.**
 
+> **Repository upload check:** The current `ai-project` branch snapshot contains the top-level Python files and guides, but the required `engine/`, `web/`, `tests/`, and `docs/` directories are not currently present in this folder. The project ZIP is also not present here. Restore/upload those project assets before treating this GitHub copy as a complete, runnable distribution.
+
 OfflineYouTubeStudio runs its website, API, job queue, hardware scanner and media engine in one Python application. It does not require a separate workflow server or a workflow editor.
 
 ## What works in this build
@@ -26,12 +28,12 @@ The legacy LTX-Video Diffusers memory example reports approximately **10 GB VRAM
 | 16 GB+ CUDA GPU | Better headroom for native LTX inference; exact model/runtime compatibility still applies. |
 | CPU-only | Hardware scan and image-motion rendering work; LTX diffusion generation is disabled. |
 
-System RAM does not replace dedicated VRAM. CPU offload can reduce GPU memory pressure but may be slow and is not a promise that a 4 GB GPU can run LTX.
+**Safety warning:** Do not force-enable LTX or bypass the VRAM/CUDA safety gate on a GTX 1650 4 GB. System RAM does not replace dedicated VRAM. CPU offload can reduce GPU memory pressure but is not a promise that a 4 GB GPU can run LTX. Stop workloads if temperatures or system behavior become abnormal.
 
 ## Quick start (Windows 11)
 
 1. Install Python 3.11 x64.
-2. Extract this repository to a normal folder (not inside another AI application's plugin directory).
+2. Extract the complete project distribution to a normal folder (not inside another AI application's plugin directory).
 3. Double-click `ONE_CLICK.bat` or run `ONE_CLICK.bat install` once.
 4. Run `ONE_CLICK.bat start`; the browser opens at `http://127.0.0.1:8765`.
 5. Run `CHECK_GPU.bat` for a separate hardware report.
@@ -87,24 +89,21 @@ Example Image Motion request shape:
 
 ## Project structure
 
+A complete source checkout should include the following folders in addition to the top-level files:
+
 ```text
 OfflineYouTubeStudio/
-├── studio.py                 # Local web server and JSON API
-├── hardware_scanner.py       # GPU/VRAM/RAM/disk/CUDA inventory
-├── model_selector.py         # Explainable hardware-aware model advisor
-├── engine/
-│   ├── video_engine.py       # Native LTX + Image Motion adapters
-│   └── job_manager.py        # Single-worker queue, progress, cancellation
-├── web/index.html            # Browser UI
-├── channel_pipeline.py      # Ollama -> native video -> Piper -> FFmpeg -> YouTube
-├── niche_research.py        # Public search-based niche research
-├── safe_mode.py             # NVIDIA telemetry
-├── models/                   # Reserved for local model assets
+├── engine/                   # Native LTX and Image Motion adapters; job manager
+├── web/                      # Browser interface
+├── tests/                    # Automated regression tests
+├── docs/                     # Architecture and model-selection notes
 ├── uploads/                  # Temporary reference images
 ├── outputs/                  # Generated MP4s and channel assets
 ├── logs/                     # Runtime logs
-├── tests/                    # Automated tests
-└── docs/                     # Architecture and model selection notes
+├── studio.py                 # Local web server and JSON API
+├── hardware_scanner.py       # GPU/VRAM/RAM/disk/CUDA inventory
+├── model_selector.py         # Explainable hardware-aware model advisor
+└── channel_pipeline.py       # Optional YouTube channel workflow
 ```
 
 ## Development and tests

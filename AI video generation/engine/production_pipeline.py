@@ -327,7 +327,8 @@ def produce_video(task: dict[str, Any], output_path: str | Path, *,
                     "clip": clips[i].name}
                    for i, (s, slot) in enumerate(zip(package["scenes"], slots))],
         "audio": {"narration": voice.name, "captions": captions.name,
-                  "music": Path(music).name if music and Path(music).is_file() else None,\n                  "sound_effects": [Path(p).name for p in task.get("sfx_paths", []) if p and Path(p).is_file()]},
+                  "music": Path(music).name if music and Path(music).is_file() else None,
+                  "sound_effects": [Path(p).name for p in task.get("sfx_paths", []) if p and Path(p).is_file()]},
     }
     (root / "timeline.json").write_text(json.dumps(timeline, ensure_ascii=False, indent=2), encoding="utf-8")
     if progress:

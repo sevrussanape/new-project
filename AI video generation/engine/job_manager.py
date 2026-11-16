@@ -145,6 +145,12 @@ class JobManager:
             task = self._tasks.pop(job_id, None)
             self._cancel.pop(job_id, None)
         if isinstance(task, dict):
+            for media_path in (task.get("sfx_paths") or []):
+                if media_path:
+                    try:
+                        Path(media_path).unlink(missing_ok=True)
+                    except OSError:
+                        pass
             for key in ("image_path", "reference_image_path", "music_path"):
                 media_path = task.get(key)
                 if media_path:

@@ -201,18 +201,28 @@ def _concat_scenes(clips: list[Path], output: Path, *, width: int, height: int, 
     if not clips:
         raise RuntimeError("No scene clips were generated.")
     if transition == "dissolve" and len(clips) > 1:
-        inputs: list[str] = []
+        ffprobe = _exe("ffprobe")
+        durations = []
         for clip in clips:
-            inputs += ["-i", str(clip)]
+            probe = subprocess.run([ffprobe, "-v", "error", "-show_entries", "format=duration",
+                                    "-of", "default=noprint_wrappers=1:nokey=1", str(clip)],
+                                   capture_output=True, text=True, check=True)
+            durations.append(float(probe.stdout.strip()))
+        inputs: list[str] = []
         filters = []
-        previous = "[0:v]"
-        offset = 0.0
+        for index, clip in enumerate(clips):
+            inputs += ["-i", str(clip)]
+            filters.append(f"[{index}:v]scale={width}:{height}:force_original_aspect_ratio=increase,"
+                           f"crop={width}:{height},fps={fps},setsar=1[v{index}]")
+        previous = "[v0]"
+        elapsed = durations[0]
         for index in range(1, len(clips)):
-            # Clips are short, equalized to 0.5-second overlap.
-            offset += max(0.5, 3.5) if index == 1 else 3.5
+            overlap = min(0.5, max(0.1, durations[index] / 4), max(0.1, elapsed / 4))
+            offset = max(0.0, elapsed - overlap)
             label = f"[xf{index}]"
-            filters.append(f"{previous}[{index}:v]xfade=transition=fade:duration=0.5:offset={offset:.3f}{label}")
+            filters.append(f"{previous}[v{index}]xfade=transition=fade:duration={overlap:.3f}:offset={offset:.3f}{label}")
             previous = label
+            elapsed += durations[index] - overlap
         _run([ffmpeg, "-y", *inputs, "-filter_complex", ";".join(filters),
               "-map", previous, "-an", "-r", str(fps), "-c:v", "libx264",
               "-pix_fmt", "yuv420p", str(output)])
@@ -280,20 +290,31 @@ def produce_video(task: dict[str, Any], output_path: str | Path, *,
     ffmpeg = _exe("ffmpeg")
     subtitle_path = str(captions.resolve()).replace("\\\\", "/").replace(":", "\\:").replace("'", "\\'")
     command = [ffmpeg, "-y", "-i", str(visual), "-i", str(voice)]
+    audio_inputs = ["[1:a]"]
     music = task.get("music_path")
     if music and Path(music).is_file():
         command += ["-stream_loop", "-1", "-i", str(music)]
+        filters_audio = ["[2:a]volume=0.12[music]"]
+        audio_inputs.append("[music]")
+    else:
+        filters_audio = []
+    for index, sfx in enumerate(task.get("sfx_paths") or []):
+        if sfx and Path(sfx).is_file():
+            command += ["-i", str(sfx)]
+            input_index = 2 + (1 if music and Path(music).is_file() else 0) + index
+            filters_audio.append(f"[{input_index}:a]volume=0.65[sfx{index}]")
+            audio_inputs.append(f"[sfx{index}]")
     filters = [f"[0:v]subtitles='{subtitle_path}':force_style='FontName=Arial,FontSize=22,Outline=2,Shadow=1,Alignment=2,MarginV=45'[v]"]
-    if music and Path(music).is_file():
-        filters.append("[2:a]volume=0.12[music]")
-        filters.append("[1:a][music]amix=inputs=2:duration=first:dropout_transition=2[a]")
+    if len(audio_inputs) > 1:
+        filters.extend(filters_audio)
+        filters.append("".join(audio_inputs) + f"amix=inputs={len(audio_inputs)}:duration=longest:dropout_transition=2,apad[a]")
         audio_map = "[a]"
     else:
         audio_map = "1:a"
     command += ["-filter_complex", ";".join(filters), "-map", "[v]", "-map", audio_map,
                 "-r", str(task.get("fps", 30)), "-c:v", "libx264", "-preset", "veryfast",
                 "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
-                "-shortest", "-movflags", "+faststart", str(output_path)]
+                "-t", str(duration), "-movflags", "+faststart", str(output_path)]
     _run(command, timeout=3600)
     if not Path(output_path).is_file() or Path(output_path).stat().st_size < 2048:
         raise RuntimeError("Final MP4 was not created successfully.")
@@ -306,7 +327,7 @@ def produce_video(task: dict[str, Any], output_path: str | Path, *,
                     "clip": clips[i].name}
                    for i, (s, slot) in enumerate(zip(package["scenes"], slots))],
         "audio": {"narration": voice.name, "captions": captions.name,
-                  "music": Path(music).name if music and Path(music).is_file() else None},
+                  "music": Path(music).name if music and Path(music).is_file() else None,\n                  "sound_effects": [Path(p).name for p in task.get("sfx_paths", []) if p and Path(p).is_file()]},
     }
     (root / "timeline.json").write_text(json.dumps(timeline, ensure_ascii=False, indent=2), encoding="utf-8")
     if progress:

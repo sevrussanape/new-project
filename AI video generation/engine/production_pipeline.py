@@ -132,7 +132,7 @@ def _timestamp(seconds: float) -> str:
 
 
 def write_captions(script: str, duration: float, path: Path) -> None:
-    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\\s+", script.strip()) if s.strip()]
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", script.strip()) if s.strip()]
     if not sentences:
         raise RuntimeError("Cannot create captions from an empty script.")
     weights = [max(1, len(s.split())) for s in sentences]
@@ -143,7 +143,7 @@ def write_captions(script: str, duration: float, path: Path) -> None:
         end = cursor + duration * weight / total
         lines.extend([str(index), f"{_timestamp(cursor)} --> {_timestamp(end)}", sentence, ""])
         cursor = end
-    path.write_text("\\n".join(lines), encoding="utf-8-sig")
+    path.write_text("\n".join(lines), encoding="utf-8-sig")
 
 
 def _make_voice(script: str, output: Path, model_path: str | None = None) -> None:
@@ -159,7 +159,7 @@ def _make_voice(script: str, output: Path, model_path: str | None = None) -> Non
 
 def _render_dialogue(script: str, output: Path, voice_models: dict[str, str]) -> None:
     """Render SPEAKER 1:/SPEAKER 2: dialogue with separate local Piper voices."""
-    segments = re.split(r"(?im)^\\s*(SPEAKER\\s+\\d+)\\s*:\\s*", script)
+    segments = re.split(r"(?im)^\s*(SPEAKER\s+\\d+)\s*:\s*", script)
     if len(segments) < 3:
         _make_voice(script, output)
         return
@@ -228,7 +228,7 @@ def _concat_scenes(clips: list[Path], output: Path, *, width: int, height: int, 
               "-pix_fmt", "yuv420p", str(output)])
         return
     listing = output.with_suffix(".concat.txt")
-    listing.write_text("".join("file '" + str(p.resolve()).replace("'", "'\\''") + "'\\n" for p in clips),
+    listing.write_text("".join("file '" + str(p.resolve()).replace("'", "'\\''") + "'\n" for p in clips),
                        encoding="utf-8")
     _run([ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(listing),
           "-an", "-vf", f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},fps={fps}",

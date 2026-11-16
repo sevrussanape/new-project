@@ -1,79 +1,158 @@
-# OfflineYouTubeStudio
+<!--
+  OfflineYouTubeStudio
+  Local-first video creation with transparent hardware limits.
+-->
 
-**A local-first video production workspace with hardware-aware model selection and a native Python inference backend.**
+<div align="center">
 
-> **Repository upload check:** The current `ai-project` branch snapshot contains the top-level Python files and guides, but the required `engine/`, `web/`, `tests/`, and `docs/` directories are not currently present in this folder. The project ZIP is also not present here. Restore/upload those project assets before treating this GitHub copy as a complete, runnable distribution.
+# ◈ OfflineYouTubeStudio
 
-OfflineYouTubeStudio runs its website, API, job queue, hardware scanner and media engine in one Python application. It does not require a separate workflow server or a workflow editor.
+### Your local video workspace. Your hardware. Your files.
 
-## What works in this build
+**A native Python video studio with hardware-aware model selection, an in-process LTX adapter, and a low-resource image-motion renderer.**
 
-- Local web UI served at `http://127.0.0.1:8765`.
-- Hardware scanner for NVIDIA GPU/VRAM, CPU, system RAM, disk and optional PyTorch/CUDA details.
-- Explainable model advisor that only recommends models integrated into this runtime and checks current free VRAM.
-- Native LTX-Video Diffusers adapter, lazily loaded in the Studio Python process on compatible CUDA hardware.
-- A single-worker background job queue with status, progress, cancellation, MP4 preview and direct downloads. Job history is persisted in a local SQLite database; jobs interrupted by a restart are clearly marked rather than silently lost.
-- Bounded queue (up to three waiting jobs), request validation, 20 MB image limit, 40-megapixel image safety limit, prompt-length limits and browser security headers.
-- Low-resource Image Motion renderer: upload a still image and create a real MP4 with a smooth camera move. This is deliberately labelled as image animation, not generative AI.
-- Existing Ollama script generation, niche research, Piper narration, subtitle creation and YouTube OAuth pipeline remain available, with video generation routed through the native engine.
+<p>
+  <img src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.11+">
+  <img src="https://img.shields.io/badge/Run-Local--first-9BCF53?style=for-the-badge" alt="Local first">
+  <img src="https://img.shields.io/badge/Backend-Native%20Python-20232A?style=for-the-badge" alt="Native Python backend">
+  <img src="https://img.shields.io/badge/Platform-Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
+</p>
 
-## Hardware truth and supported modes
+[Features](#-what-you-can-do) · [Hardware guide](#-hardware--honest-expectations) · [Install](#-get-started) · [API](#-local-api) · [Docs](#-documentation)
 
-The legacy LTX-Video Diffusers memory example reports approximately **10 GB VRAM**. This project uses a conservative gate of 10 GB total VRAM, 8.5 GB currently free VRAM, CUDA-enabled PyTorch, and 50 GB free disk. This is a planning gate, not a guarantee; a short validation generation is still required. LTX-2.5 is the newer model family and its official system-requirements page lists 32 GB+ NVIDIA VRAM and 100 GB free storage, so it is deliberately not selected for this low-resource build.
+</div>
 
-| Hardware | Application behavior |
+---
+
+## ✨ What you can do
+
+| Feature | What it does |
 |---|---|
-| GTX 1650 4 GB + 64 GB RAM | Studio and hardware advisor work. LTX is disabled. Image Motion mode creates MP4 from a supplied image. |
-| 10–12 GB CUDA GPU | LTX may pass the planning gate; test a short clip first. |
-| 16 GB+ CUDA GPU | Better headroom for native LTX inference; exact model/runtime compatibility still applies. |
-| CPU-only | Hardware scan and image-motion rendering work; LTX diffusion generation is disabled. |
+| **Text → Video** | Generate short clips with the integrated LTX-Video Diffusers adapter when the GPU passes the runtime safety checks |
+| **Image → Video** | Use a reference image with the native LTX path on eligible hardware |
+| **Image Motion** | Turn a still image into an MP4 with smooth pan/zoom animation on lower-memory PCs |
+| **Hardware advisor** | Inspect GPU, VRAM, RAM, disk and CUDA availability before selecting a generation path |
+| **Local job queue** | Queue, monitor and cancel jobs; review recent results and download MP4 files |
+| **Local-first workflow** | Run the UI, API, queue and media engine in one Python application |
 
-**Safety warning:** Do not force-enable LTX or bypass the VRAM/CUDA safety gate on a GTX 1650 4 GB. System RAM does not replace dedicated VRAM. CPU offload can reduce GPU memory pressure but is not a promise that a 4 GB GPU can run LTX. Stop workloads if temperatures or system behavior become abnormal.
+> **Important distinction:** Image Motion creates an animated video from an existing image. It does **not** generate new visual content and is not presented as generative AI.
 
-## Quick start (Windows 11)
+## 🖥️ Hardware & honest expectations
 
-1. Install Python 3.11 x64.
-2. Extract the complete project distribution to a normal folder (not inside another AI application's plugin directory).
-3. Double-click `ONE_CLICK.bat` or run `ONE_CLICK.bat install` once.
-4. Run `ONE_CLICK.bat start`; the browser opens at `http://127.0.0.1:8765`.
-5. Run `CHECK_GPU.bat` for a separate hardware report.
-6. Run `TEST.bat` any time to execute the built-in regression tests.
+The integrated LTX adapter uses a conservative planning gate:
 
-Base installation only installs Pillow and imageio-ffmpeg. It does not install a large AI framework or download model weights.
+- NVIDIA GPU with CUDA-enabled PyTorch
+- **10 GB total VRAM** and at least **8.5 GB currently free**
+- At least **32 GB system RAM**
+- At least **50 GB free disk space**
 
-### Enable native LTX on a compatible GPU
+Passing these checks only means the machine may be suitable for a guarded test. It is **not a guarantee** of successful inference. Validate with a short generation on the target machine.
 
-Run:
+| Your hardware | Expected experience |
+|---|---|
+| **GTX 1650 4 GB + 64 GB RAM** | Studio and hardware advisor can run; LTX is blocked by the VRAM safety gate; Image Motion can render still-image MP4s |
+| **10–12 GB NVIDIA GPU** | May pass the planning gate; test a short clip first |
+| **16 GB+ NVIDIA GPU** | More memory headroom; model/runtime compatibility still matters |
+| **CPU-only** | Hardware scan and Image Motion; LTX diffusion generation is disabled |
+
+<details>
+<summary><strong>Why the GTX 1650 4 GB is not enough for LTX</strong></summary>
+
+System RAM cannot replace dedicated GPU VRAM. CPU offload can reduce GPU memory pressure, but it does not make a 4 GB GPU equivalent to a supported high-memory GPU. Do not bypass the runtime gate or force-load LTX on hardware that fails it.
+
+The legacy LTX-Video Diffusers memory example is approximately 10 GB VRAM. LTX-2.5 is a newer model family with substantially higher published requirements and is not part of this adapter's model catalog.
+
+</details>
+
+## 🚀 Get started
+
+### Windows
+
+1. Install **Python 3.11 x64**.
+2. Download or clone this repository and open the `AI video generation` project folder.
+3. Run the installer:
+
+   ```bat
+   ONE_CLICK.bat install
+   ```
+
+4. Start the studio:
+
+   ```bat
+   ONE_CLICK.bat start
+   ```
+
+5. Open the local app at **http://127.0.0.1:8765** if it does not open automatically.
+
+Optional checks:
+
+```bat
+CHECK_GPU.bat
+TEST.bat
+```
+
+The base installation is intended to install the lightweight image-rendering requirements. It does not need to install a large AI framework or download LTX weights just to open the Studio.
+
+### Enable LTX on compatible hardware
+
+On a supported CUDA machine, run:
 
 ```bat
 ONE_CLICK.bat install-ltx
 ```
 
-This installs CUDA-enabled PyTorch and Diffusers/Transformers/Accelerate. The LTX weights are downloaded from Hugging Face on the first eligible generation request. After the weights are cached locally, inference can run without internet. Check the model license before redistribution or commercial use.
+The LTX adapter loads lazily. Model weights are fetched on the first eligible generation request and can be reused from the local cache afterward. The first download requires internet access and substantial disk space.
 
-The native LTX safety profile is intentionally short: 512-pixel long edge, at most 4 seconds, 12 FPS and 20 denoising steps. The default model ID is `Lightricks/LTX-Video`; it can be overridden with `OFFLINE_STUDIO_LTX_MODEL` before launching the app. Model loading is lazy so the Studio can start without PyTorch or model weights installed. The legacy LTX-Video repository is no longer the actively developed line; the current LTX-2.5 requirements are substantially higher and need a separate adapter.
+**Default conservative profile:** up to 4 seconds, 12 FPS, 512-pixel long edge and 20 denoising steps.
 
-## Low-VRAM image-motion mode
+## 🎞️ Image Motion on lower-memory PCs
 
-On a GTX 1650 4 GB, select **Image Motion**, upload a PNG/JPEG/WebP image, choose aspect ratio/duration/FPS, and render. The app uses Pillow plus the FFmpeg binary bundled by `imageio-ffmpeg` to produce MP4. The camera move is deterministic pan/zoom; it does not invent new objects or synthesize motion like a diffusion video model.
+1. Open **Image Motion** in the Studio.
+2. Upload a PNG, JPEG or WebP image (up to 20 MB).
+3. Choose aspect ratio, duration and frame rate.
+4. Render and preview/download the MP4.
 
-## API
+This path uses Pillow and the FFmpeg binary supplied by `imageio-ffmpeg`. It animates the supplied still image with a deterministic camera move; it does not synthesize new scenes or objects.
 
-The automated regression suite can be run with `TEST.bat` or `python -m unittest discover -s tests -v`. The local server binds to loopback only.
+## 🧩 How it is built
+
+```text
+Browser UI (web/)
+      │  loopback HTTP / JSON
+      ▼
+studio.py  ───── hardware_scanner.py ─── model_selector.py
+      │
+      ▼
+engine/job_manager.py
+      │
+      ▼
+engine/video_engine.py
+      ├── LTX-Video · PyTorch + Diffusers (eligible CUDA GPUs)
+      └── Image Motion · Pillow + imageio-ffmpeg
+      │
+      ▼
+outputs/*.mp4
+```
+
+The app uses one local Python process for the web API and job queue. Jobs run sequentially to reduce GPU memory pressure. The runtime repeats its own hardware capability checks immediately before model loading; the UI's disabled state is not the only safety control.
+
+## 🔌 Local API
+
+The server binds to loopback. The main endpoints are:
 
 | Endpoint | Method | Purpose |
-|---|---|---|
+|---|:---:|---|
 | `/api/health` | GET | Engine, hardware and LTX capability |
-| `/api/config` | GET | UI/API limits and supported generation modes |
-| `/api/hardware` | GET | Raw hardware inventory |
+| `/api/config` | GET | UI/API limits and supported modes |
+| `/api/hardware` | GET | Hardware inventory |
 | `/api/models` | GET | Model recommendation and runtime gates |
-| `/api/generate` | POST | Queue LTX or Image Motion job |
+| `/api/generate` | POST | Queue an LTX or Image Motion job |
 | `/api/jobs` | GET | Recent local jobs |
-| `/api/jobs/{id}` | GET | Job progress/result |
-| `/api/jobs/{id}/cancel` | POST | Cancel queued/running job |
-| `/outputs/{file}.mp4` | GET | Preview/download local result |
+| `/api/jobs/{id}` | GET | Job status and result |
+| `/api/jobs/{id}/cancel` | POST | Cancel a queued/running job |
+| `/outputs/{file}.mp4` | GET | Preview or download a result |
 
-Example Image Motion request shape:
+Example Image Motion request:
 
 ```json
 {
@@ -87,42 +166,54 @@ Example Image Motion request shape:
 }
 ```
 
-## Project structure
-
-A complete source checkout should include the following folders in addition to the top-level files:
+## 📁 Project layout
 
 ```text
-OfflineYouTubeStudio/
-├── engine/                   # Native LTX and Image Motion adapters; job manager
-├── web/                      # Browser interface
-├── tests/                    # Automated regression tests
-├── docs/                     # Architecture and model-selection notes
-├── uploads/                  # Temporary reference images
-├── outputs/                  # Generated MP4s and channel assets
-├── logs/                     # Runtime logs
-├── studio.py                 # Local web server and JSON API
-├── hardware_scanner.py       # GPU/VRAM/RAM/disk/CUDA inventory
-├── model_selector.py         # Explainable hardware-aware model advisor
-└── channel_pipeline.py       # Optional YouTube channel workflow
+AI video generation/
+├── engine/          # Job manager and video runtime
+├── web/             # Browser interface
+├── tests/           # Automated regression tests
+├── docs/            # Architecture and model-selection notes
+├── studio.py        # Local web server and JSON API
+├── hardware_scanner.py
+├── model_selector.py
+├── channel_pipeline.py
+├── ONE_CLICK.bat    # Windows setup and launch
+├── CHECK_GPU.bat    # Hardware report
+└── TEST.bat         # Test runner
 ```
 
-## Development and tests
+Generated files, local databases, logs, uploaded images and cached model weights are runtime data; they should not be committed as source files.
+
+## 🧪 Tests & development
+
+Run the regression suite from the project directory:
 
 ```bash
 python -m unittest discover -s tests -v
+```
+
+Compile the Python modules:
+
+```bash
 python -m py_compile studio.py hardware_scanner.py model_selector.py channel_pipeline.py engine/*.py
 ```
 
-Tests cover model selection, VRAM gates, missing CUDA, and the low-resource renderer. GPU inference tests require a compatible NVIDIA GPU, CUDA PyTorch, Diffusers and downloaded model weights; they are not simulated by unit tests.
+The repository includes tests for model selection, hardware gates, job management and the video engine. **The presence of tests does not mean GPU inference has been validated:** a compatible NVIDIA GPU, CUDA PyTorch, Diffusers and cached model weights are required to validate actual LTX generation. Windows launchers should also be tested on the target Windows machine.
 
-## Limitations
+## 📚 Documentation
 
-- The GTX 1650 4 GB cannot be promised to run full LTX diffusion. This build disables LTX under the safety threshold rather than risking repeated CUDA out-of-memory failures.
-- Image Motion is a deterministic still-image animation, not generative video.
-- The native LTX adapter is implemented but has not been executed on the user's Windows GPU in this development environment.
-- First LTX model load needs internet and substantial disk space; subsequent inference can be offline.
-- YouTube research and OAuth upload require internet. Ollama, Piper voice files and FFmpeg are separate optional dependencies for the channel pipeline.
+- [Architecture](docs/ARCHITECTURE.md) — components, runtime boundaries and design decisions
+- [Hardware-aware model selection](docs/MODEL_SELECTION.md) — explicit model eligibility gates
 
-## License and attribution
+## ⚠️ Current limitations
 
-Check each upstream model's license and the licenses of all optional dependencies before using outputs commercially or redistributing model weights. LTX-Video is developed by Lightricks. This project is an independent integration and is not affiliated with Lightricks.
+- The GTX 1650 4 GB is below the LTX safety threshold; use Image Motion on that hardware.
+- Image Motion is still-image animation, not generative video.
+- The LTX adapter is implemented but has **not** been physically validated on the target Windows GPU.
+- First-time model download requires internet; cached weights can be reused offline.
+- Optional YouTube research/OAuth, Ollama and Piper workflows have their own external requirements.
+
+## 📜 License & attribution
+
+Check the license terms for LTX-Video and every optional dependency before commercial use or redistribution of model weights. OfflineYouTubeStudio is an independent integration and is not affiliated with Lightricks.

@@ -46,8 +46,8 @@ class ProductionPipelineTests(unittest.TestCase):
             path = Path(directory) / "captions.srt"
             write_captions("First sentence. Second sentence!", 10.0, path)
             text = path.read_text(encoding="utf-8-sig")
-            self.assertIn("1\\n00:00:00,000 --> ", text)
-            self.assertIn("2\\n", text)
+            self.assertIn("1\n00:00:00,000 --> ", text)
+            self.assertIn("2\n", text)
             self.assertIn("Second sentence!", text)
 
 

@@ -102,18 +102,13 @@ exit /b 0
 :install_ltx
 call :EnsureBaseDeps
 if errorlevel 1 goto fail
-echo Installing CUDA-enabled PyTorch and native Diffusers libraries.
-echo This is a large download. Model weights are downloaded on the first LTX generation.
-".venv\Scripts\python.exe" -m pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu126
-if errorlevel 1 goto fail
-".venv\Scripts\python.exe" -m pip install --upgrade diffusers transformers accelerate safetensors huggingface_hub
-if errorlevel 1 goto fail
-".venv\Scripts\python.exe" -c "import torch; print('PyTorch:',torch.__version__); print('CUDA available:',torch.cuda.is_available()); print('GPU:',torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'Unavailable')"
+echo Installing the AI runtime and downloading the full LTX model.
+echo This is a large download and requires a compatible GPU and internet.
+".venv\Scripts\python.exe" ai_setup.py
 if errorlevel 1 goto fail
 echo.
-echo LTX Python dependencies installed.
-echo IMPORTANT: This does not guarantee your GPU meets LTX requirements. Run CHECK_GPU.bat and read the Studio model advisor.
-echo The LTX model weights will be downloaded only on the first eligible generation request.
+echo AI runtime and LTX model weights installed successfully.
+echo Restart Studio before generating your first test clip.
 pause
 exit /b 0
 

@@ -48,7 +48,7 @@ The model advisor and runtime now share the same eligibility decision. Missing f
 
 ## Complete local production pipeline
 
-The browser UI exposes a multi-scene production workflow:
+The browser UI exposes a multi-scene production workflow. The Hardware & model advisor also has a **Download & install AI video engine + model** button. Clicking it starts a background installer, shows status in the UI, installs CUDA-enabled PyTorch and the Diffusers dependencies, then downloads the LTX-Video weights into the Hugging Face cache. The installer does not block the browser while downloading.
 
 1. A local Ollama model creates the title, hook, script and visual prompts for educational, facts, story, documentary, motivational, podcast, product-explainer, news-style, how-to and Shorts formats.
 2. The integrated generative video adapter creates short clips for each scene. A failed model check stops the job; still-image motion is not substituted.
@@ -137,7 +137,7 @@ This uses Pillow and imageio-ffmpeg to animate a still image with a deterministi
 
 | Endpoint | Method | Purpose |
 |---|:---:|---|
-| `/api/health` | GET | Application status and hardware report |
+| `/api/health` | GET | Application status and hardware report |\n| `/api/setup/ai` | GET/POST | Read installer status / start AI runtime and model installation |
 | `/api/hardware` | GET | Raw hardware inventory |
 | `/api/models` | GET | Model recommendation, runtime gate and fallback |
 | `/api/config` | GET | UI/API limits and modes |
@@ -159,7 +159,7 @@ AI video generation/
 ├── web/                # Browser interface
 ├── tests/              # Automated regression tests
 ├── docs/               # Architecture and model-selection documentation
-├── studio.py           # Local HTTP server and API
+├── studio.py           # Local HTTP server and API\n├── ai_setup.py         # Explicit CUDA runtime + LTX model installer
 ├── hardware_scanner.py # Side-effect-free hardware inventory
 ├── model_selector.py   # Integrated-model eligibility and recommendation
 ├── channel_pipeline.py # Local channel workflow CLI

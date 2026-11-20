@@ -11,6 +11,8 @@ import json
 import mimetypes
 import os
 import re
+import subprocess
+import sys
 import threading
 import urllib.parse
 import uuid
@@ -38,6 +40,9 @@ ALLOWED_MOTIONS = {"subtle", "balanced", "dynamic"}
 OUTPUTS.mkdir(exist_ok=True)
 UPLOADS.mkdir(exist_ok=True)
 JOBS = JobManager(OUTPUTS)
+AI_SETUP_PROCESS = None
+AI_SETUP_LOCK = threading.Lock()
+AI_SETUP_STATE = ROOT / "logs" / "ai_setup.json"
 
 
 def machine_report() -> dict:
@@ -135,6 +140,19 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Referrer-Policy", "no-referrer")
             self.send_header("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
             self.end_headers(); self.wfile.write(raw); return
+        if path == "/api/setup/ai":
+            if AI_SETUP_STATE.is_file():
+                try:
+                    state = json.loads(AI_SETUP_STATE.read_text(encoding="utf-8"))
+                except Exception:
+                    state = {"status": "unknown", "message": "Could not read setup status."}
+            else:
+                state = {"status": "not_started", "message": "AI engine has not been installed yet.", "progress": 0}
+            process = AI_SETUP_PROCESS
+            if process is not None and process.poll() is not None and state.get("status") == "running":
+                state = {"status": "failed", "message": "Installer stopped unexpectedly. Check logs/ai_setup.log.", "progress": 0}
+            self._send(200, state)
+            return
         if path == "/api/durations":
             self._send(200, {"presets": DURATION_PRESETS, "custom_min_seconds": 5,
                              "custom_max_seconds": 1800, "default_preset": "60 seconds"})
@@ -212,6 +230,31 @@ class Handler(BaseHTTPRequestHandler):
             job_id = path.split("/")[-2]
             if JOBS.cancel(job_id): self._send(200, {"cancelled": True, "job_id": job_id})
             else: self._send(409, {"error": "Job cannot be cancelled because it is no longer active."})
+            return
+        if path == "/api/setup/ai":
+            global AI_SETUP_PROCESS
+            try:
+                with AI_SETUP_LOCK:
+                    if AI_SETUP_PROCESS is not None and AI_SETUP_PROCESS.poll() is None:
+                        self._send(409, {"error": "AI engine installation is already running."})
+                        return
+                    inventory = scan_hardware(ROOT)
+                    gpu = inventory.get("primary_gpu") or {}
+                    vram = (gpu.get("vram_total_mb") or 0) / 1024
+                    ram = inventory.get("memory_gb") or 0
+                    disk = (inventory.get("disk") or {}).get("free_gb") or 0
+                    if vram < 10 or ram < 32 or disk < 50:
+                        self._send(409, {"error": f"This PC does not meet LTX installation requirements. Detected {vram:.1f} GB VRAM, {ram} GB RAM and {disk:.1f} GB free disk; required: 10 GB VRAM, 32 GB RAM and 50 GB free disk. No model was downloaded. A compatible low-VRAM adapter is not yet integrated."})
+                        return
+                    (ROOT / "logs").mkdir(exist_ok=True)
+                    log_handle = (ROOT / "logs" / "ai_setup.log").open("a", encoding="utf-8")
+                    AI_SETUP_PROCESS = subprocess.Popen(
+                        [sys.executable, str(ROOT / "ai_setup.py")],
+                        cwd=str(ROOT), stdout=log_handle, stderr=subprocess.STDOUT,
+                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                self._send(202, {"status": "running", "message": "AI engine installation started.", "progress": 1})
+            except Exception as exc:
+                self._send(500, {"error": f"Could not start AI installer: {exc}"})
             return
         if path == "/api/plan":
             try:

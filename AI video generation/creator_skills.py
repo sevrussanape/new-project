@@ -102,6 +102,11 @@ def _ollama_generate(prompt: str, *, model: str | None = None, timeout: int = 30
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             result = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:500]
+        if exc.code == 404:
+            raise RuntimeError(f"Ollama could not find model '{selected}'. Run: ollama pull {selected}") from exc
+        raise RuntimeError(f"Ollama returned HTTP {exc.code}: {detail}") from exc
     except urllib.error.URLError as exc:
         raise RuntimeError(
             "Local Ollama is not reachable. Start Ollama, download a local model, "
@@ -348,6 +353,8 @@ def _title_formula(title: str) -> str:
 
 
 def run_viral(source: str, minimum_multiple: float = 1.5) -> dict[str, Any]:
+    if not 1.0 <= float(minimum_multiple) <= 1000:
+        raise ValueError("Minimum view multiple must be between 1 and 1000.")
     try:
         payload = json.loads(source)
     except json.JSONDecodeError as exc:
@@ -440,10 +447,12 @@ def _parse_user_input(source: str) -> Any:
 def run_skill(skill: str, source: str, *, model: str | None = None) -> dict[str, Any]:
     if skill not in SKILL_BY_ID:
         raise ValueError("Unknown creator skill.")
+    if model is not None and not isinstance(model, str):
+        raise ValueError("Model name must be text.")
     if not isinstance(source, str):
         raise ValueError("Skill input must be text.")
     parsed = _parse_user_input(source)
-    if skill == "yt-audit" and isinstance(parsed, str) and re.fullmatch(r"https?://\\S+", parsed.strip()):
+    if skill == "yt-audit" and isinstance(parsed, str) and re.fullmatch(r"https?://\S+", parsed.strip()):
         raise ValueError("This offline audit does not scrape channel URLs. Paste recent video titles, thumbnail notes, opening transcripts and available analytics.")
     if skill == "yt-chapters":
         target = parsed.get("target", 7) if isinstance(parsed, dict) else 7

@@ -119,6 +119,22 @@ Today we build this.
         with self.assertRaises(ValueError):
             skills.run_skill("yt-audit", "https://youtube.com/@somechannel")
 
+    def test_hook_scorecard_uses_five_dimensions(self):
+        result = skills._score_hook("Why do you still lose viewers in the first 10 seconds?")
+        self.assertEqual(set(result["properties"]), {
+            "specificity", "direct_address", "stakes", "curiosity", "brevity"
+        })
+        self.assertGreaterEqual(result["score"], 0)
+        self.assertLessEqual(result["score"], 100)
+        self.assertEqual(result["formula"], "The Question")
+
+    def test_viral_title_formula_uses_21_formula_library(self):
+        self.assertEqual(
+            skills._title_formula("I tried this for 30 days so you don't have to"),
+            "I Tried It"
+        )
+        self.assertEqual(len(skills.HOOK_FORMULAS), 21)
+
     def test_unknown_skill_is_rejected(self):
         with self.assertRaises(ValueError):
             skills.run_skill("yt-not-real", "hello")

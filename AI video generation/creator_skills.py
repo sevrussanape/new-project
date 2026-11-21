@@ -498,7 +498,7 @@ def _lint_title(title: str, thumbnail: str = "") -> dict[str, Any]:
 AI_PROMPTS: dict[str, str] = {
     "yt-audit": """Audit the supplied YouTube channel evidence. Review the last titles as a set, thumbnail readability notes, first 15 seconds of the most recent openings, upload consistency and retention if supplied. Do not invent metrics or claim to have opened the channel URL. Return: (1) one biggest fix and a 7-day action, (2) three evidence-backed things already working, (3) what not to change yet, (4) missing evidence. Be direct and specific; do not dump twenty generic suggestions.""",
     "yt-comment": """Triage each supplied comment into Questions, Corrections, Praise or Bait, and count each category. Draft replies only for useful questions, valid corrections and a few specific praise comments. Keep each reply under 30 words, answer the actual question first, do not argue unverified facts, and do not reply to bait. Suggest exactly one comment to pin and explain why. Never publish replies.""",
-    "yt-package": """Create ten distinct YouTube title + thumbnail pairs for the supplied idea and audience. Make each title specific and truthful; avoid fake urgency, unsupported numbers and vague hype. The thumbnail must add a different piece of information rather than repeat the title and should use at most three short words. Rank the top three and explain each tradeoff. Include a thumbnail visual brief for the strongest pair. Apply approximate 40-character mobile and 60-character desktop display checks; these are heuristics, not guaranteed truncation points. Do not claim CTR predictions.""",
+    "yt-package": """Create exactly ten distinct YouTube title + thumbnail packages for the supplied idea and audience. Return ONLY valid JSON in this shape: {"packages":[{"title":"...","thumbnail_text":"up to 3 short words","thumbnail_visual_brief":"...","rationale":"..."}]}. Make every title specific and truthful; avoid fake urgency, unsupported numbers and vague hype. The thumbnail must add a different piece of information rather than repeat the title. Do not invent facts or CTR predictions. The application will independently lint each title/thumbnail pair for the 100-character hard title limit, approximate 60-character desktop and 40-character mobile display targets, vague hype, repeated words and thumbnail word count.""
     "yt-plan": """Build a realistic weekly or monthly YouTube content plan based on the creator's actual available hours and work already in progress. Prefer one anchor video, one lower-effort upload and up to three Shorts repurposed from the anchor when capacity allows. Return a table with day, format, working title, viewer promise, existing assets, and estimated work hours. Total the hours and state what to drop first if the week becomes busy. Do not invent the best upload day; use analytics only if supplied.""",
     "yt-script": """Write a YouTube script that earns the click and sustains attention. Use the 21 hook approaches below as a formula library; choose five that suit this specific idea and do not force a weak fit. Return ONLY valid JSON with this shape: {"hooks":[{"formula":"formula name","text":"exact spoken opening","proof":"what must be shown or cited in the next 15 seconds"}],"beats":[{"time":"0:00-0:15","voiceover":"spoken narration","on_screen":"visual direction"}],"payoff":"the promised viewer payoff","closing_ask":"one closing ask","formula_rationale":"why the best formula fits"}. Include exactly five distinct hooks and at least three script beats. The first 15 seconds must confirm the title promise, open a question the viewer cannot close and prove the payoff exists. No fabricated statistics, named results, dates or sources. Formula library: The Statistic (verifiable number then consequence); Someone Else’s Result (named outcome then mechanism); The Mistake (a common checkable error); Contrarian Flip (accepted advice challenged with evidence); The Reveal (show a specific artifact early); The Superlative (best/worst/fastest with comparison); The Clock (bounded truthful payoff); I Tried It (first-person experiment with real stakes); The Question (viewer’s real search/comment question); Before and After (visual contrast); The Teardown (break down a real example with scope); The Stack (combine named tools for one outcome); The Warning (real cost the viewer risks); The List (exact counted set); The Receipt (show real evidence first); The Insider (truthful system insight, no fake access); The Impossible Claim (surprising claim proven immediately); The Comparison (two named options and a clear winner); The Origin (show where a real process/result began); The Deadline (real dated change); The Direct Address (name a narrow viewer). Apply each formula’s failure condition as a guardrail: evidence for numbers/results, show the artifact when promised, keep the time promise, use a real question, do not claim insider access, and never exaggerate deadlines.""
     "yt-seo": """Create a useful YouTube SEO pack for the real viewer query. Write a two-line opening description that says exactly what the viewer gets using the supplied target phrase naturally. Add resource links only when supplied, then a useful longer description, chapters only if supplied, and up to 15 relevant tags for disambiguation. End with three target search queries and check whether the title and first two description lines contain their main terms. Do not invent search-volume numbers or promise rankings; explain that tags are a weaker discovery signal than viewer satisfaction and packaging.""",
@@ -655,6 +655,43 @@ def run_skill(skill: str, source: str, *, model: str | None = None) -> dict[str,
                          "payoff": package.get("payoff"), "closing_ask": package.get("closing_ask")}}
     elif skill == "yt-audit":
         prompt = AI_PROMPTS[skill] + "\n\nChannel evidence supplied by creator:\n" + (json.dumps(parsed, ensure_ascii=False, indent=2) if not isinstance(parsed, str) else parsed)
+    elif skill == "yt-package":
+        prompt = AI_PROMPTS[skill] + "\n\nVideo brief:\n" + (json.dumps(parsed, ensure_ascii=False, indent=2) if not isinstance(parsed, str) else parsed)
+        output = _ollama_generate(prompt, model=model, json_mode=True)
+        package = _parse_model_json(output)
+        candidates = package.get("packages")
+        if not isinstance(candidates, list) or len(candidates) != 10:
+            raise RuntimeError("The local model must return exactly ten title/thumbnail packages in JSON. Try again.")
+        checked = []
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+            title = str(candidate.get("title", "")).strip()
+            thumbnail = str(candidate.get("thumbnail_text", "")).strip()
+            if not title:
+                continue
+            lint = _lint_title(title, thumbnail)
+            lint["score"] = max(0, min(100, 100 - 14 * len(lint["issues"]) + 4 * len(lint["positives"])))
+            lint["thumbnail_text"] = thumbnail
+            lint["thumbnail_visual_brief"] = str(candidate.get("thumbnail_visual_brief", "")).strip()
+            lint["rationale"] = str(candidate.get("rationale", "")).strip()
+            checked.append(lint)
+        if len(checked) < 3:
+            raise RuntimeError("The local model returned too few usable title/thumbnail packages. Try again.")
+        checked.sort(key=lambda item: item["score"], reverse=True)
+        lines = ["TITLE + THUMBNAIL PACKAGES — rule-based editorial lint, not a CTR prediction", ""]
+        for rank, item in enumerate(checked, 1):
+            lines.append(f"{rank}. [{item['score']}/100] {item['title']}")
+            lines.append(f"   Thumbnail: {item['thumbnail_text']}")
+            if item["thumbnail_visual_brief"]:
+                lines.append(f"   Visual brief: {item['thumbnail_visual_brief']}")
+            if item["rationale"]:
+                lines.append(f"   Rationale: {item['rationale']}")
+            lines.append("   Checks: " + ("; ".join(item["issues"]) if item["issues"] else "No lint issues found."))
+            lines.append("")
+        lines.append("Top three are ranked by a simple lint score. Choose based on audience promise and truthful proof, then test with real audience data.")
+        return {"skill": skill, "title": SKILL_BY_ID[skill]["name"], "engine": "ollama+python",
+                "model": model or DEFAULT_MODEL, "result": "\n".join(lines), "data": {"packages": checked}}
     elif skill == "yt-comment":
         prompt = AI_PROMPTS[skill] + "\n\nComments and optional creator voice:\n" + (json.dumps(parsed, ensure_ascii=False, indent=2) if not isinstance(parsed, str) else parsed)
     elif skill == "yt-package":

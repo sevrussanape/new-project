@@ -430,6 +430,14 @@ AI_PROMPTS: dict[str, str] = {
 }
 
 
+def _transcript_input(parsed: Any, original: str) -> str:
+    if isinstance(parsed, dict):
+        transcript = parsed.get("transcript")
+        if isinstance(transcript, str) and transcript.strip():
+            return transcript
+    return original
+
+
 def _parse_user_input(source: str) -> Any:
     raw = source.strip()
     if not raw:
@@ -456,7 +464,7 @@ def run_skill(skill: str, source: str, *, model: str | None = None) -> dict[str,
         raise ValueError("This offline audit does not scrape channel URLs. Paste recent video titles, thumbnail notes, opening transcripts and available analytics.")
     if skill == "yt-chapters":
         target = parsed.get("target", 7) if isinstance(parsed, dict) else 7
-        transcript = parsed.get("transcript", "") if isinstance(parsed, dict) else source
+        transcript = _transcript_input(parsed, source)
         result = run_chapters(transcript, target)
         lines = [f"Valid YouTube chapters: {'YES' if result['valid'] else 'NO'}", ""]
         lines += [f"{c['timestamp']} {c['draft_title']}  ({c['duration_seconds']:.1f}s)" for c in result["chapters"]]
@@ -506,7 +514,7 @@ def run_skill(skill: str, source: str, *, model: str | None = None) -> dict[str,
     elif skill == "yt-seo":
         prompt = AI_PROMPTS[skill] + "\n\nVideo metadata and audience:\n" + (json.dumps(parsed, ensure_ascii=False, indent=2) if not isinstance(parsed, str) else parsed)
     elif skill == "yt-shorts":
-        cues = parse_transcript(parsed.get("transcript", "") if isinstance(parsed, dict) else source)
+        cues = parse_transcript(_transcript_input(parsed, source))
         transcript = "\n".join(f"{_format_time(a)} --> {_format_time(b)} | {text}" for a, b, text in cues)
         prompt = AI_PROMPTS[skill] + "\n\nTimestamped source transcript:\n" + transcript
     else:

@@ -44,6 +44,30 @@ class TranscriptSkillTests(unittest.TestCase):
         self.assertGreaterEqual(len(result["chapters"]), 3)
         self.assertTrue(all(c["duration_seconds"] >= 10 for c in result["chapters"]))
 
+    def test_chapters_accept_whisper_segments_object(self):
+        segments = [
+            {"start": 0, "end": 8, "text": "Opening idea here."},
+            {"start": 12, "end": 20, "text": "Explain the main problem."},
+            {"start": 22, "end": 30, "text": "Show the first solution."},
+            {"start": 32, "end": 40, "text": "Add another important detail."},
+            {"start": 42, "end": 50, "text": "Give a practical example."},
+            {"start": 52, "end": 60, "text": "Finish with the result."},
+        ]
+        result = skills.run_skill("yt-chapters", json.dumps({"target": 3, "segments": segments}))
+        self.assertEqual(result["engine"], "python")
+        self.assertIn("Valid YouTube chapters: YES", result["result"])
+
+    def test_edit_accepts_whisper_segments_object(self):
+        segments = [
+            {"start": 0, "end": 2, "text": "Hello everyone."},
+            {"start": 4, "end": 4.5, "text": "Um."},
+            {"start": 7, "end": 9, "text": "Today we build this."},
+            {"start": 10, "end": 12, "text": "Today we build this."},
+        ]
+        result = skills.run_skill("yt-edit", json.dumps({"floor": 0.4, "segments": segments}))
+        self.assertEqual(result["engine"], "python")
+        self.assertIn("FILLER", result["result"])
+
     def test_edit_detects_dead_air_and_filler(self):
         transcript = """1
 00:00:00,000 --> 00:00:02,000

@@ -42,7 +42,7 @@ class StudioApiTests(unittest.TestCase):
         with urlopen(self.base + "/api/creator/skills", timeout=5) as response:
             payload = json.loads(response.read())
         self.assertEqual(len(payload["skills"]), 11)
-        self.assertEqual(payload["recommended_model"], "qwen3:4b")
+        self.assertEqual(payload["recommended_model"], "qwen3.5:4b")
 
     def test_creator_viral_skill_runs_without_ollama(self):
         videos = [

@@ -472,7 +472,7 @@ def run_skill(skill: str, source: str, *, model: str | None = None) -> dict[str,
         return {"skill": skill, "title": SKILL_BY_ID[skill]["name"], "engine": "python", "result": "\n".join(lines), "data": result}
     if skill == "yt-edit":
         floor = parsed.get("floor", 0.45) if isinstance(parsed, dict) else 0.45
-        transcript = parsed.get("transcript", "") if isinstance(parsed, dict) else source
+        transcript = _transcript_input(parsed, source)
         result = run_edit(transcript, float(floor))
         lines = [f"Transcript length: {result['duration_seconds']:.1f}s · {result['cue_count']} cues",
                  f"Suggested cuts: {len(result['cuts'])} · estimated removal: {result['removed_seconds_estimate']:.1f}s",

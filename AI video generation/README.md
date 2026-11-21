@@ -83,9 +83,7 @@ ollama pull qwen3.5:4b
 ```
 
 The default creator model is qwen3.5:4b; set OLLAMA_MODEL before launching Studio to
-use another model. Qwen3 4B is a starting recommendation for a 4 GB VRAM / 32 GB RAM
-class of PC, not a promise that all model layers will fit in dedicated VRAM. Ollama may
-offload layers to system RAM; close GPU-heavy apps or use a smaller model if necessary.
+use another model. Qwen3.5 4B is the quality-first starting point. Its Ollama download is about 3.4 GB before runtime/context overhead, so a 4 GB GPU may need CPU/RAM offload. Close GPU-heavy apps and start with short inputs. For a lighter fallback, use qwen3.5:2b (about 2.7 GB).
 The model weights must be downloaded once before offline use.
 
 Use the **YouTube Creator Skills** section in the browser. Paste the evidence requested

@@ -290,14 +290,21 @@ def run_edit(source: str, floor: float = 0.45) -> dict[str, Any]:
             "warning": "Edit decision list only. Check every cut against the actual video; do not cut silent demos or intentional pauses blindly."}
 
 
-def run_retention(source: str, duration_seconds: float | None = None) -> dict[str, Any]:
+def run_retention(source: str, duration_seconds: float | None = None, position_unit: str = "auto") -> dict[str, Any]:
+    if position_unit not in {"auto", "seconds", "percent"}:
+        raise ValueError("position_unit must be auto, seconds or percent.")
     rows = []
+    timestamp_axis_seen = False
     for row in csv.reader(source.splitlines()):
         numbers = []
         for index, cell in enumerate(row):
             cleaned = cell.strip().replace("%", "").replace(",", "")
             try:
-                numbers.append(_parse_timestamp(cleaned) if index == 0 and ":" in cleaned else float(cleaned))
+                if index == 0 and ":" in cleaned:
+                    numbers.append(_parse_timestamp(cleaned))
+                    timestamp_axis_seen = True
+                else:
+                    numbers.append(float(cleaned))
             except ValueError:
                 pass
         if len(numbers) >= 2:
@@ -306,10 +313,17 @@ def run_retention(source: str, duration_seconds: float | None = None) -> dict[st
         raise ValueError("Could not read at least eight data points from the pasted retention CSV.")
     rows.sort(key=lambda item: item[0])
     xs, ys = [r[0] for r in rows], [r[1] for r in rows]
-    percent_axis = max(xs) <= 100.5
     duration = float(duration_seconds) if duration_seconds else None
     if duration is not None and duration <= 0:
         raise ValueError("Video duration must be positive.")
+    if position_unit == "percent":
+        percent_axis = True
+    elif position_unit == "seconds" or timestamp_axis_seen:
+        percent_axis = False
+    elif duration is not None and abs(max(xs) - duration) <= max(5.0, duration * 0.05):
+        percent_axis = False
+    else:
+        percent_axis = max(xs) <= 100.5
     cutoff = (30 / duration * 100) if percent_axis and duration else (10 if percent_axis else 30)
     start_value = ys[0] if ys[0] > 0 else 100.0
     hook_end = next((y for x, y in reversed(rows) if x <= cutoff), start_value)
@@ -577,7 +591,8 @@ def run_skill(skill: str, source: str, *, model: str | None = None) -> dict[str,
     if skill == "yt-retention":
         duration = parsed.get("duration_seconds") if isinstance(parsed, dict) else None
         csv_text = parsed.get("csv", "") if isinstance(parsed, dict) else source
-        result = run_retention(csv_text, duration)
+        unit = parsed.get("position_unit", "auto") if isinstance(parsed, dict) else "auto"
+        result = run_retention(csv_text, duration, str(unit))
         lines = [f"Opening loss: {result['hook_loss_first_30s_or_10pct']:.1f} percentage points ({result['hook_verdict']})",
                  f"Retention: {result['start_retention']:.1f}% → {result['end_retention']:.1f}%",
                  f"Average mid-video drop per step: {result['average_mid_video_drop_per_step']:.3f}", "", "Largest drops:"]

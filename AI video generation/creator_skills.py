@@ -318,7 +318,7 @@ def run_retention(source: str, duration_seconds: float | None = None) -> dict[st
         cliffs.append({"from": round(x0, 2), "to": round(x1, 2), "percentage_points_lost": round(drop, 2),
                        "loss_per_axis_unit": round(rate, 3),
                        "at_seconds": round(time_value, 1) if time_value is not None else None})
-    middle = [max(0.0, -change) for change, x0, _, _ in changes if x0 > cutoff]
+    middle = [max(0.0, change) for change, x0, _, _ in changes if x0 > cutoff]
     slide = statistics.mean(middle) if middle else 0.0
     if hook_loss < 25:
         verdict = "healthy"
@@ -443,6 +443,8 @@ def run_skill(skill: str, source: str, *, model: str | None = None) -> dict[str,
     if not isinstance(source, str):
         raise ValueError("Skill input must be text.")
     parsed = _parse_user_input(source)
+    if skill == "yt-audit" and isinstance(parsed, str) and re.fullmatch(r"https?://\\S+", parsed.strip()):
+        raise ValueError("This offline audit does not scrape channel URLs. Paste recent video titles, thumbnail notes, opening transcripts and available analytics.")
     if skill == "yt-chapters":
         target = parsed.get("target", 7) if isinstance(parsed, dict) else 7
         transcript = parsed.get("transcript", "") if isinstance(parsed, dict) else source

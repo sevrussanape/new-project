@@ -91,7 +91,7 @@ def _ollama_generate(prompt: str, *, model: str | None = None, timeout: int = 30
             {"role": "user", "content": prompt},
         ],
         "stream": False,
-        "options": {"temperature": 0.65, "num_ctx": 8192},
+        "options": {"temperature": 0.65, "num_ctx": 4096},
     }
     if json_mode:
         body["format"] = "json"

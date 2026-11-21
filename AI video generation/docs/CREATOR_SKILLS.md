@@ -16,7 +16,7 @@ this repository is independently implemented.
 | yt-edit | Produces an edit decision list for dead air, filler-only cues and likely repeated starts. | SRT, VTT or Whisper JSON |
 | yt-package | Generates ten title/thumbnail pairings, then ranks and lints them locally for length, vague wording, repeated words and thumbnail text length. | Topic, audience, promise and evidence |
 | yt-plan | Plans a realistic week or month using actual available hours and work already in progress. | Capacity, unfinished work, audience and formats |
-| yt-retention | Reports opening loss, steep drops and average mid-video decline from a retention export. | YouTube Studio CSV; duration if the position axis is percent |
+| yt-retention | Reports opening loss, steep drops and average mid-video decline from a retention export. | YouTube Studio CSV; for JSON, optionally include duration_seconds and position_unit (`seconds` or `percent`) |
 | yt-script | Chooses five of 21 hook formulas, scores specificity/address/stakes/curiosity/brevity locally, then builds a beat-by-beat script with on-screen directions. | Idea, viewer, duration, evidence and voice |
 | yt-seo | Creates a search-aligned description, focused tags and target query checks. | Topic, viewer, title, target keywords and links |
 | yt-shorts | Finds self-contained 20–55 second excerpts and proposes fresh hooks and vertical framing. | Timestamped transcript |

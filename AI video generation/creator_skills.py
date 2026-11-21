@@ -337,19 +337,40 @@ def run_retention(source: str, duration_seconds: float | None = None) -> dict[st
             "note": "This is descriptive analysis of the supplied export, not a causal explanation. Add a timestamped transcript to map drops to spoken content."}
 
 
+HOOK_FORMULAS = [
+    ("The Statistic", [r"\b\d+(\.\d+)?\s?%", r"\b\d+ (out of|in) \d+\b", r"\b\d{2,}(,\d{3})+\b"]),
+    ("Someone Else's Result", [r"\bthis (channel|guy|creator|account)\b", r"\bwent from .* to\b", r"\bin (a|one|two|three|\d+) (week|month|year)s?\b"]),
+    ("The Mistake", [r"\byou('re| are) (probably |still )?(doing|making)\b", r"\bthe (mistake|reason) (everyone|most people|nobody)\b", r"\bstop (doing )?\b"]),
+    ("Contrarian Flip", [r"\beveryone (says|thinks|tells you)\b", r"\bis (actually )?wrong\b", r"\bnobody (tells|talks about)\b"]),
+    ("The Reveal", [r"\bI('m| am) going to show you\b", r"\bhere('s| is) (the|exactly)\b", r"\bon screen\b"]),
+    ("The Superlative", [r"\bthe (best|worst|fastest|easiest|only)\b", r"\bnumber one\b"]),
+    ("The Clock", [r"\bin (the next )?\d+ (seconds|minutes|hours)\b", r"\bby the end of this video\b", r"\bunder \d+\b"]),
+    ("I Tried It", [r"\bI (tried|spent|tested|let|gave)\b", r"\bfor \d+ (days|weeks|months)\b", r"\bso you don'?t have to\b"]),
+    ("The Question", [r"^(why|how|what|when|should|can|do|does|is)\b", r"\?\s*$"]),
+    ("Before and After", [r"\bbefore\b.*\bafter\b", r"\bthis was\b.*\bthis is\b", r"\bused to\b"]),
+    ("The Teardown", [r"\b(broke|break|breaking) (it )?down\b", r"\bteardown\b", r"\banalys(ed|ed|is|e)\b", r"\bI pulled\b"]),
+    ("The Stack", [r"\b\w+ (plus|\+) \w+\b", r"\bcombine\b", r"\btogether\b"]),
+    ("The Warning", [r"\bdo not\b", r"\bdon'?t (upload|post|publish|start)\b", r"\bbefore you\b", r"\bstop\b"]),
+    ("The List", [r"^\d+ \w+", r"\b(here are|these are) \d+\b"]),
+    ("The Receipt", [r"\bthis is (the|my)\b", r"\bscreenshot\b", r"\bproof\b", r"\breceipts?\b"]),
+    ("The Insider", [r"\b(nobody|almost nobody|most people) (knows?|opens?|uses?)\b", r"\bhidden\b", r"\bburied\b"]),
+    ("The Impossible Claim", [r"\bwithout\b", r"\bnever\b", r"\bin one\b", r"\bzero\b"]),
+    ("The Comparison", [r"\bvs\.?\b", r"\bversus\b", r"\bwhich (one )?(is|wins)\b", r"\bsame .* (three|two) ways\b"]),
+    ("The Origin", [r"\bevery (video|post) .* starts\b", r"\bit all (starts|started)\b", r"\bthe (real )?reason\b"]),
+    ("The Deadline", [r"\b(this|next) (week|month|year)\b", r"\bis changing\b", r"\bno longer\b", r"\bas of\b"]),
+    ("The Direct Address", [r"^if you\b", r"\bfor (anyone|everyone|people) who\b", r"\byou specifically\b"]),
+]
+
+def _hook_formula(title: str) -> tuple[str, int]:
+    best_name, best_hits = "Unclassified", 0
+    for name, patterns in HOOK_FORMULAS:
+        hits = sum(1 for pattern in patterns if re.search(pattern, title, re.I))
+        if hits > best_hits:
+            best_name, best_hits = name, hits
+    return best_name, best_hits
+
 def _title_formula(title: str) -> str:
-    lower = title.lower()
-    if re.search(r"\b\d+\b", lower):
-        return "Specific number or list"
-    if lower.startswith(("how ", "how to ")):
-        return "How-to / transformation"
-    if lower.startswith("why ") or "why " in lower[:25]:
-        return "Curiosity / explanation"
-    if re.search(r"\b(vs\.?|versus|instead of|but)\b", lower):
-        return "Contrast"
-    if re.search(r"\b(i tried|i tested|my|journey|built|made)\b", lower):
-        return "Personal experiment"
-    return "Unclassified title pattern"
+    return _hook_formula(title)[0]
 
 
 def run_viral(source: str, minimum_multiple: float = 1.5) -> dict[str, Any]:

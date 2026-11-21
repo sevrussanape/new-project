@@ -65,6 +65,37 @@ The browser UI exposes a multi-scene production workflow. The Hardware & model a
 
 Ollama/Piper/FFmpeg are not silently downloaded by the GPU scanner. They are separate prerequisites. The first model-weight download requires internet access; once all required packages and weights are cached, generation can run offline.
 
+## YouTube Creator Skills (11 local-first workflows)
+
+The Studio now includes a YouTube Creator Skills panel with eleven focused workflows:
+channel audit, chapters, comment triage, edit decision lists, title/thumbnail packaging,
+content planning, retention analysis, hook/script writing, SEO, Shorts repurposing and
+relative-view viral outlier research.
+
+Language tasks use the configured local Ollama model only. Transcript and analytics
+checks run in Python. There is no Gemini, OpenAI, ElevenLabs or other hosted inference
+fallback, and the skills never publish, upload, reply to comments or modify source media.
+
+Install Ollama separately, then download the recommended local language model once:
+
+```bat
+ollama pull qwen3:4b
+```
+
+The default creator model is qwen3:4b; set OLLAMA_MODEL before launching Studio to
+use another model. Qwen3 4B is a starting recommendation for a 4 GB VRAM / 32 GB RAM
+class of PC, not a promise that all model layers will fit in dedicated VRAM. Ollama may
+offload layers to system RAM; close GPU-heavy apps or use a smaller model if necessary.
+The model weights must be downloaded once before offline use.
+
+Use the **YouTube Creator Skills** section in the browser. Paste the evidence requested
+for the selected skill: transcripts for chapters/edit/Shorts, a CSV export for retention,
+or JSON video records for relative-view research. Channel audit does not scrape a channel
+URL or access private YouTube Studio data. Viral research does not scrape competitor
+channels. These tools analyze only the evidence you supply and cannot guarantee virality.
+
+Detailed guide: [docs/CREATOR_SKILLS.md](docs/CREATOR_SKILLS.md).
+
 ## Hardware requirements and realistic expectations
 
 The integrated LTX adapter uses conservative planning requirements:
@@ -137,7 +168,9 @@ This uses Pillow and imageio-ffmpeg to animate a still image with a deterministi
 
 | Endpoint | Method | Purpose |
 |---|:---:|---|
-| `/api/health` | GET | Application status and hardware report |\n| `/api/setup/ai` | GET/POST | Read installer status / start AI runtime and model installation |
+| `/api/health` | GET | Application status and hardware report |
+| `/api/creator/skills` | GET | List YouTube creator workflows and local model guidance |
+| `/api/creator/run` | POST | Run one local creator workflow (Ollama or deterministic Python) |\n| `/api/setup/ai` | GET/POST | Read installer status / start AI runtime and model installation |
 | `/api/hardware` | GET | Raw hardware inventory |
 | `/api/models` | GET | Model recommendation, runtime gate and fallback |
 | `/api/config` | GET | UI/API limits and modes |
@@ -156,6 +189,8 @@ This uses Pillow and imageio-ffmpeg to animate a still image with a deterministi
 ```text
 AI video generation/
 ├── engine/             # Runtime adapter, queue, duration and production pipeline
+├── creator_skills/     # Upstream MIT attribution for adapted skill workflows
+├── creator_skills.py   # 11 local-first YouTube creator skill handlers
 ├── web/                # Browser interface
 ├── tests/              # Automated regression tests
 ├── docs/               # Architecture and model-selection documentation

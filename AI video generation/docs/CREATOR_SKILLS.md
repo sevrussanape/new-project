@@ -3,7 +3,7 @@
 OfflineYouTubeStudio includes eleven creator workflows inspired by the public
 [youtube-agent-skill](https://github.com/Jakeschincariol/youtube-agent-skill)
 project. The source project is MIT-licensed; its license and attribution are
-included in creator_skills/SOURCE_LICENSE_MIT.txt. The Python integration in
+included in docs/THIRD_PARTY_LICENSES/youtube-agent-skill-MIT.txt. The Python integration in
 this repository is independently implemented.
 
 ## Included workflows

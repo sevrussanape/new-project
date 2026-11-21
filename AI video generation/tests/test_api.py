@@ -38,6 +38,28 @@ class StudioApiTests(unittest.TestCase):
         self.assertEqual(payload["limits"]["max_prompt_chars"], 2000)
         self.assertIn("image-motion", payload["modes"])
 
+    def test_creator_skills_endpoint_lists_eleven_workflows(self):
+        with urlopen(self.base + "/api/creator/skills", timeout=5) as response:
+            payload = json.loads(response.read())
+        self.assertEqual(len(payload["skills"]), 11)
+        self.assertEqual(payload["recommended_model"], "qwen3:4b")
+
+    def test_creator_viral_skill_runs_without_ollama(self):
+        videos = [
+            {"channel": "A", "title": "One", "views": 100},
+            {"channel": "A", "title": "Two", "views": 100},
+            {"channel": "A", "title": "Three", "views": 100},
+            {"channel": "A", "title": "Four", "views": 100},
+            {"channel": "A", "title": "Five", "views": 1000},
+        ]
+        payload = {"skill": "yt-viral", "input": json.dumps(videos)}
+        request = Request(self.base + "/api/creator/run", data=json.dumps(payload).encode(),
+                          headers={"Content-Type": "application/json"}, method="POST")
+        with urlopen(request, timeout=5) as response:
+            result = json.loads(response.read())
+        self.assertEqual(result["engine"], "python")
+        self.assertIn("10.00", result["result"])
+
     def test_invalid_aspect_is_rejected(self):
         payload = {"mode": "image-motion", "prompt": "test", "aspect": "999:1"}
         request = Request(self.base + "/api/generate", data=json.dumps(payload).encode(),

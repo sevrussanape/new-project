@@ -80,7 +80,7 @@ def list_skills() -> dict[str, Any]:
             "recommended_model_note": "Best quality starting point in this app: qwen3.5:4b (about 3.4 GB in Ollama). On a 4 GB GPU it may offload layers to system RAM; use qwen3.5:2b for a lighter/faster fallback. Close GPU-heavy apps and test response speed."}
 
 
-def _ollama_generate(prompt: str, *, model: str | None = None, timeout: int = 300) -> str:
+def _ollama_generate(prompt: str, *, model: str | None = None, timeout: int = 300, json_mode: bool = False) -> str:
     selected = (model or DEFAULT_MODEL).strip()
     if not re.fullmatch(r"[A-Za-z0-9._:/-]{1,120}", selected):
         raise ValueError("Invalid local Ollama model name.")
@@ -93,6 +93,8 @@ def _ollama_generate(prompt: str, *, model: str | None = None, timeout: int = 30
         "stream": False,
         "options": {"temperature": 0.65, "num_ctx": 8192},
     }
+    if json_mode:
+        body["format"] = "json"
     request = urllib.request.Request(
         OLLAMA_URL + "/api/chat",
         data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
@@ -502,6 +504,22 @@ AI_PROMPTS: dict[str, str] = {
     "yt-seo": """Create a useful YouTube SEO pack for the real viewer query. Write a two-line opening description that says exactly what the viewer gets using the supplied target phrase naturally. Add resource links only when supplied, then a useful longer description, chapters only if supplied, and up to 15 relevant tags for disambiguation. End with three target search queries and check whether the title and first two description lines contain their main terms. Do not invent search-volume numbers or promise rankings; explain that tags are a weaker discovery signal than viewer satisfaction and packaging.""",
     "yt-shorts": """Find up to five self-contained Shorts inside the supplied timestamped transcript. Each candidate must be about 20–55 seconds, start with enough context to stand alone, contain a clear turn/payoff and end on a complete line. For each provide start/end timecodes, exact opening words, why it works alone, a NEW hook, different first-two-second on-screen text, a suggested loop point and a vertical crop note. Do not invent transcript quotes or timestamps. If timestamps are not present or too few suitable spans exist, say so rather than guessing.""",
 }
+
+
+def _parse_model_json(text: str) -> dict[str, Any]:
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", text, re.S)
+        if not match:
+            raise RuntimeError("Local model did not return the requested JSON structure. Try again with a smaller prompt or model.")
+        try:
+            payload = json.loads(match.group(0))
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("Local model returned malformed JSON. Try again.") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("Local model returned JSON, but it was not an object.")
+    return payload
 
 
 def _transcript_input(parsed: Any, original: str) -> str:

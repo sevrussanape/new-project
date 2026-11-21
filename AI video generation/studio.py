@@ -25,6 +25,7 @@ from engine.video_engine import ltx_capability
 from engine.job_manager import JobManager
 from engine.duration_planner import DURATION_PRESETS, plan_scene_slots, resolve_duration
 from engine.production_pipeline import CONTENT_TYPES
+from creator_skills import list_skills as list_creator_skills, run_skill as run_creator_skill
 
 ROOT = Path(__file__).resolve().parent
 WEB = ROOT / "web" / "index.html"
@@ -140,6 +141,24 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Referrer-Policy", "no-referrer")
             self.send_header("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
             self.end_headers(); self.wfile.write(raw); return
+        if path == "/api/creator/run":
+            try:
+                body = self._json_body()
+                if not isinstance(body, dict):
+                    raise ValueError("Request JSON must be an object.")
+                skill = str(body.get("skill", "")).strip()
+                skill_input = body.get("input", "")
+                if not isinstance(skill_input, str):
+                    raise ValueError("Skill input must be text.")
+                result = run_creator_skill(skill, skill_input, model=body.get("model"))
+                self._send(200, result)
+            except (ValueError, json.JSONDecodeError) as exc:
+                self._send(400, {"error": f"Invalid creator-skill request: {exc}"})
+            except RuntimeError as exc:
+                self._send(503, {"error": str(exc)})
+            except Exception as exc:
+                self._send(500, {"error": f"Creator skill failed: {exc}"})
+            return
         if path == "/api/setup/ai":
             if AI_SETUP_STATE.is_file():
                 try:
@@ -152,6 +171,9 @@ class Handler(BaseHTTPRequestHandler):
             if process is not None and process.poll() is not None and state.get("status") == "running":
                 state = {"status": "failed", "message": "Installer stopped unexpectedly. Check logs/ai_setup.log.", "progress": 0}
             self._send(200, state)
+            return
+        if path == "/api/creator/skills":
+            self._send(200, list_creator_skills())
             return
         if path == "/api/durations":
             self._send(200, {"presets": DURATION_PRESETS, "custom_min_seconds": 5,

@@ -98,6 +98,12 @@ Today we build this.
         self.assertGreater(result["hook_loss_first_30s_or_10pct"], 25)
         self.assertGreater(result["average_mid_video_drop_per_step"], 0)
 
+    def test_retention_accepts_elapsed_time_axis(self):
+        csv_text = "elapsed_time,still_watching\n00:00,100\n00:10,90\n00:20,80\n00:30,70\n00:40,60\n00:50,50\n01:00,40\n01:10,30\n"
+        result = skills.run_retention(csv_text, duration_seconds=70)
+        self.assertEqual(result["hook_loss_first_30s_or_10pct"], 30.0)
+        self.assertEqual(result["hook_verdict"], "leaking")
+
     def test_viral_outlier_uses_each_channel_median(self):
         videos = [
             {"channel": "A", "title": "One", "views": 100},

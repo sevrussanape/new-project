@@ -167,7 +167,7 @@ def main():
     ap.add_argument('--auto-niche',action='store_true',help='Research public YouTube results and choose a relative opportunity before writing')
     ap.add_argument('--research-only',action='store_true',help='Create a niche research report and stop without generating a video')
     ap.add_argument('--skip-research',action='store_true',help='Do not access public search; use a fixed topic entirely offline')
-    ap.add_argument('--model',default=os.environ.get('OLLAMA_MODEL','llama3.2:1b'),help='Small local Ollama model name; script generation is CPU-only in safe mode')
+    ap.add_argument('--model',default=os.environ.get('OLLAMA_MODEL','qwen3:4b'),help='Small local Ollama model name; script generation is CPU-only in safe mode')
     ap.add_argument('--motion-image', help='Optional local still image; creates an image-motion MP4 on low-VRAM PCs (not generative AI)')
     ap.add_argument('--duration',type=int,default=60,help='Approximate subtitle timing duration in seconds')
     ap.add_argument('--fps',type=int,default=24,help='Output frame rate for local video rendering')

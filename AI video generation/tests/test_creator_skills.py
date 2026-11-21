@@ -1,0 +1,103 @@
+import json
+import unittest
+
+import creator_skills as skills
+
+
+SRT = """1
+00:00:00,000 --> 00:00:08,000
+We start with the first idea.
+
+2
+00:00:12,000 --> 00:00:20,000
+The next part explains the problem.
+
+3
+00:00:22,000 --> 00:00:30,000
+Now we show the first solution.
+
+4
+00:00:32,000 --> 00:00:40,000
+Here is another useful detail.
+
+5
+00:00:42,000 --> 00:00:50,000
+This is the practical example.
+
+6
+00:00:52,000 --> 00:01:00,000
+Finally we explain the result.
+"""
+
+
+class TranscriptSkillTests(unittest.TestCase):
+    def test_parse_srt(self):
+        cues = skills.parse_transcript(SRT)
+        self.assertEqual(len(cues), 6)
+        self.assertEqual(cues[0][0], 0.0)
+        self.assertEqual(cues[-1][1], 60.0)
+
+    def test_chapters_are_valid_and_start_at_zero(self):
+        result = skills.run_chapters(SRT, target=3)
+        self.assertTrue(result["valid"])
+        self.assertEqual(result["chapters"][0]["timestamp"], "00:00")
+        self.assertGreaterEqual(len(result["chapters"]), 3)
+        self.assertTrue(all(c["duration_seconds"] >= 10 for c in result["chapters"]))
+
+    def test_edit_detects_dead_air_and_filler(self):
+        transcript = """1
+00:00:00,000 --> 00:00:02,000
+Hello everyone.
+
+2
+00:00:04,000 --> 00:00:04,500
+Um.
+
+3
+00:00:07,000 --> 00:00:09,000
+Today we build this.
+
+4
+00:00:10,000 --> 00:00:12,000
+Today we build this.
+"""
+        result = skills.run_edit(transcript, floor=0.4)
+        kinds = {c["kind"] for c in result["cuts"]}
+        self.assertIn("DEAD", kinds)
+        self.assertIn("FILLER", kinds)
+        self.assertIn("REPEAT", kinds)
+
+    def test_retention_csv_detects_opening_loss_and_mid_slide(self):
+        csv_text = "position,still_watching\n0,100\n10,80\n20,75\n30,65\n40,60\n50,55\n60,50\n70,45\n"
+        result = skills.run_retention(csv_text, duration_seconds=100)
+        self.assertEqual(result["hook_verdict"], "leaking")
+        self.assertGreater(result["hook_loss_first_30s_or_10pct"], 25)
+        self.assertGreater(result["average_mid_video_drop_per_step"], 0)
+
+    def test_viral_outlier_uses_each_channel_median(self):
+        videos = [
+            {"channel": "A", "title": "One", "views": 100},
+            {"channel": "A", "title": "Two", "views": 110},
+            {"channel": "A", "title": "Three", "views": 90},
+            {"channel": "A", "title": "Four", "views": 1000, "url": "https://example.com"},
+        ]
+        result = skills.run_viral(json.dumps(videos), minimum_multiple=1.5)
+        self.assertEqual(len(result["outliers"]), 1)
+        self.assertEqual(result["outliers"][0]["multiple_of_median"], 10.0)
+
+    def test_python_skill_dispatch(self):
+        result = skills.run_skill("yt-chapters", SRT)
+        self.assertEqual(result["engine"], "python")
+        self.assertIn("Valid YouTube chapters", result["result"])
+
+    def test_audit_does_not_claim_to_fetch_url(self):
+        with self.assertRaises(ValueError):
+            skills.run_skill("yt-audit", "https://youtube.com/@somechannel")
+
+    def test_unknown_skill_is_rejected(self):
+        with self.assertRaises(ValueError):
+            skills.run_skill("yt-not-real", "hello")
+
+
+if __name__ == "__main__":
+    unittest.main()

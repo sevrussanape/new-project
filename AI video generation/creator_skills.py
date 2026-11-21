@@ -498,7 +498,7 @@ AI_PROMPTS: dict[str, str] = {
     "yt-comment": """Triage each supplied comment into Questions, Corrections, Praise or Bait, and count each category. Draft replies only for useful questions, valid corrections and a few specific praise comments. Keep each reply under 30 words, answer the actual question first, do not argue unverified facts, and do not reply to bait. Suggest exactly one comment to pin and explain why. Never publish replies.""",
     "yt-package": """Create ten distinct YouTube title + thumbnail pairs for the supplied idea and audience. Make each title specific and truthful; avoid fake urgency, unsupported numbers and vague hype. The thumbnail must add a different piece of information rather than repeat the title and should use at most three short words. Rank the top three and explain each tradeoff. Include a thumbnail visual brief for the strongest pair. Apply approximate 40-character mobile and 60-character desktop display checks; these are heuristics, not guaranteed truncation points. Do not claim CTR predictions.""",
     "yt-plan": """Build a realistic weekly or monthly YouTube content plan based on the creator's actual available hours and work already in progress. Prefer one anchor video, one lower-effort upload and up to three Shorts repurposed from the anchor when capacity allows. Return a table with day, format, working title, viewer promise, existing assets, and estimated work hours. Total the hours and state what to drop first if the week becomes busy. Do not invent the best upload day; use analytics only if supplied.""",
-    "yt-script": """Write a YouTube script that earns the click and sustains attention. Use the 21 hook approaches below as a formula library; choose five that suit this specific idea and do not force a weak fit. For each hook, name its formula, write the exact opening, state the proof required, and give a heuristic score out of 100. These scores are editorial estimates, not predicted retention. The first 15 seconds must confirm the title promise, open a question the viewer cannot close and prove the payoff exists. No fabricated statistics, named results, dates or sources. Then choose the two best hooks and write the spoken script beat by beat. Mark every beat with [ON SCREEN: ...]. Include the turn, body, promised payoff and one closing ask. Estimate runtime at 150 spoken words/minute. Formula library: The Statistic (verifiable number then consequence); Someone Else’s Result (named outcome then mechanism); The Mistake (a common checkable error); Contrarian Flip (accepted advice challenged with evidence); The Reveal (show a specific artifact early); The Superlative (best/worst/fastest with comparison); The Clock (bounded truthful payoff); I Tried It (first-person experiment with real stakes); The Question (viewer’s real search/comment question); Before and After (visual contrast); The Teardown (break down a real example with scope); The Stack (combine named tools for one outcome); The Warning (real cost the viewer risks); The List (exact counted set); The Receipt (show real evidence first); The Insider (truthful system insight, no fake access); The Impossible Claim (surprising claim proven immediately); The Comparison (two named options and a clear winner); The Origin (show where a real process/result began); The Deadline (real dated change); The Direct Address (name a narrow viewer). Use each formula’s failure condition as a guardrail: evidence for numbers/results, show the artifact when promised, keep the time promise, use a real question, do not claim insider access, and never exaggerate deadlines.""",
+    "yt-script": """Write a YouTube script that earns the click and sustains attention. Use the 21 hook approaches below as a formula library; choose five that suit this specific idea and do not force a weak fit. Return ONLY valid JSON with this shape: {"hooks":[{"formula":"formula name","text":"exact spoken opening","proof":"what must be shown or cited in the next 15 seconds"}],"beats":[{"time":"0:00-0:15","voiceover":"spoken narration","on_screen":"visual direction"}],"payoff":"the promised viewer payoff","closing_ask":"one closing ask","formula_rationale":"why the best formula fits"}. Include exactly five distinct hooks and at least three script beats. The first 15 seconds must confirm the title promise, open a question the viewer cannot close and prove the payoff exists. No fabricated statistics, named results, dates or sources. Formula library: The Statistic (verifiable number then consequence); Someone Else’s Result (named outcome then mechanism); The Mistake (a common checkable error); Contrarian Flip (accepted advice challenged with evidence); The Reveal (show a specific artifact early); The Superlative (best/worst/fastest with comparison); The Clock (bounded truthful payoff); I Tried It (first-person experiment with real stakes); The Question (viewer’s real search/comment question); Before and After (visual contrast); The Teardown (break down a real example with scope); The Stack (combine named tools for one outcome); The Warning (real cost the viewer risks); The List (exact counted set); The Receipt (show real evidence first); The Insider (truthful system insight, no fake access); The Impossible Claim (surprising claim proven immediately); The Comparison (two named options and a clear winner); The Origin (show where a real process/result began); The Deadline (real dated change); The Direct Address (name a narrow viewer). Apply each formula’s failure condition as a guardrail: evidence for numbers/results, show the artifact when promised, keep the time promise, use a real question, do not claim insider access, and never exaggerate deadlines.""
     "yt-seo": """Create a useful YouTube SEO pack for the real viewer query. Write a two-line opening description that says exactly what the viewer gets using the supplied target phrase naturally. Add resource links only when supplied, then a useful longer description, chapters only if supplied, and up to 15 relevant tags for disambiguation. End with three target search queries and check whether the title and first two description lines contain their main terms. Do not invent search-volume numbers or promise rankings; explain that tags are a weaker discovery signal than viewer satisfaction and packaging.""",
     "yt-shorts": """Find up to five self-contained Shorts inside the supplied timestamped transcript. Each candidate must be about 20–55 seconds, start with enough context to stand alone, contain a clear turn/payoff and end on a complete line. For each provide start/end timecodes, exact opening words, why it works alone, a NEW hook, different first-two-second on-screen text, a suggested loop point and a vertical crop note. Do not invent transcript quotes or timestamps. If timestamps are not present or too few suitable spans exist, say so rather than guessing.""",
 }
@@ -577,6 +577,64 @@ def run_skill(skill: str, source: str, *, model: str | None = None) -> dict[str,
         return {"skill": skill, "title": SKILL_BY_ID[skill]["name"], "engine": "python", "result": "\n".join(lines), "data": result}
     if skill == "yt-script":
         prompt = AI_PROMPTS[skill] + "\n\nCreator brief:\n" + (json.dumps(parsed, ensure_ascii=False, indent=2) if not isinstance(parsed, str) else parsed)
+        output = _ollama_generate(prompt, model=model, json_mode=True)
+        package = _parse_model_json(output)
+        hooks = package.get("hooks")
+        if not isinstance(hooks, list) or len(hooks) != 5:
+            raise RuntimeError("The local model must return exactly five hook candidates in JSON. Try again or use a stronger local model.")
+        scored = []
+        for candidate in hooks:
+            if not isinstance(candidate, dict) or not str(candidate.get("text", "")).strip():
+                continue
+            report = _score_hook(str(candidate["text"]))
+            report["proof"] = str(candidate.get("proof", "")).strip()
+            scored.append(report)
+        if len(scored) != 5:
+            raise RuntimeError("The local model returned incomplete hook candidates. Try again.")
+        scored.sort(key=lambda item: item["score"], reverse=True)
+        lines = ["HOOK SCORECARD — deterministic editorial diagnostic, not a performance prediction", ""]
+        for index, item in enumerate(scored, 1):
+            lines.append(f"{index}. [{item['score']}/100 · {item['band']}] {item['hook']}")
+            lines.append(f"   Formula: {item['formula']} ({item['formula_matches']} pattern matches)")
+            lines.append("   Properties: " + ", ".join(f"{key} {value}/100" for key, value in item["properties"].items()))
+            lines.append(f"   Improve: {item['suggested_fix']}")
+            if item["proof"]:
+                lines.append(f"   Proof needed: {item['proof']}")
+            lines.append("")
+        lines.append("TWO STRONGEST HOOKS")
+        lines.append(f"1. {scored[0]['hook']}")
+        lines.append(f"2. {scored[1]['hook']}")
+        lines.append("")
+        beats = package.get("beats")
+        if not isinstance(beats, list) or len(beats) < 3:
+            raise RuntimeError("The local model must return at least three script beats with voiceover and on-screen directions.")
+        lines.append("SCRIPT — beat by beat")
+        spoken_parts = []
+        for index, beat in enumerate(beats, 1):
+            if not isinstance(beat, dict):
+                continue
+            voiceover = str(beat.get("voiceover", "")).strip()
+            on_screen = str(beat.get("on_screen", "")).strip()
+            time_range = str(beat.get("time", "")).strip()
+            if voiceover:
+                spoken_parts.append(voiceover)
+            lines.append(f"{index}. {time_range} {voiceover}")
+            lines.append(f"   [ON SCREEN: {on_screen or 'Add a visual that supports the spoken point.'}]")
+        script_text = " ".join(spoken_parts)
+        runtime_seconds = round(len(re.findall(r"\b[\w'-]+\b", script_text)) / 150 * 60)
+        lines.extend(["", f"Estimated spoken runtime: {runtime_seconds // 60}:{runtime_seconds % 60:02d} at 150 words/minute."])
+        if package.get("payoff"):
+            lines.append("PAYOFF: " + str(package["payoff"]))
+        if package.get("closing_ask"):
+            lines.append("CLOSE: " + str(package["closing_ask"]))
+        if package.get("formula_rationale"):
+            lines.append("FORMULA FIT: " + str(package["formula_rationale"]))
+        lines.append("")
+        lines.append("Review every factual claim and the proof required before recording.")
+        return {"skill": skill, "title": SKILL_BY_ID[skill]["name"], "engine": "ollama+python",
+                "model": model or DEFAULT_MODEL, "result": "\n".join(lines),
+                "data": {"hooks": scored, "beats": beats, "estimated_runtime_seconds": runtime_seconds,
+                         "payoff": package.get("payoff"), "closing_ask": package.get("closing_ask")}}
     elif skill == "yt-audit":
         prompt = AI_PROMPTS[skill] + "\n\nChannel evidence supplied by creator:\n" + (json.dumps(parsed, ensure_ascii=False, indent=2) if not isinstance(parsed, str) else parsed)
     elif skill == "yt-comment":

@@ -55,12 +55,12 @@ set OLLAMA_MODEL=qwen3.5:4b
 ONE_CLICK.bat start
 ~~~
 
-Qwen3 4B is the recommended starting point for this class of hardware, not a
-guarantee that all layers will fit in 4 GB of VRAM. Ollama may use system RAM
-for CPU offload. On a 4 GB GPU, close other GPU-heavy applications, start with
-short inputs, and use a smaller local model if generation is too slow or runs
-out of memory. The official Ollama library lists the Qwen3 4B artifact at
-about 2.5 GB: https://ollama.com/library/qwen3.
+Qwen3.5 4B is the recommended quality-first starting point, but its Ollama
+artifact is about 3.4 GB before runtime/context overhead. On a 4 GB GPU, some
+layers may need to be offloaded to system RAM; close GPU-heavy applications
+and start with short inputs. For a lighter fallback, install qwen3.5:2b (about
+2.7 GB). Exact speed and memory use depend on Ollama, context length and other
+GPU workloads. Model details: https://ollama.com/library/qwen3.5.
 
 Once Ollama and the model are installed, prompts are processed locally. The
 first Ollama model download requires internet access; the skills do not call

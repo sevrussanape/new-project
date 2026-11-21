@@ -141,24 +141,6 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Referrer-Policy", "no-referrer")
             self.send_header("Content-Security-Policy", "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'")
             self.end_headers(); self.wfile.write(raw); return
-        if path == "/api/creator/run":
-            try:
-                body = self._json_body()
-                if not isinstance(body, dict):
-                    raise ValueError("Request JSON must be an object.")
-                skill = str(body.get("skill", "")).strip()
-                skill_input = body.get("input", "")
-                if not isinstance(skill_input, str):
-                    raise ValueError("Skill input must be text.")
-                result = run_creator_skill(skill, skill_input, model=body.get("model"))
-                self._send(200, result)
-            except (ValueError, json.JSONDecodeError) as exc:
-                self._send(400, {"error": f"Invalid creator-skill request: {exc}"})
-            except RuntimeError as exc:
-                self._send(503, {"error": str(exc)})
-            except Exception as exc:
-                self._send(500, {"error": f"Creator skill failed: {exc}"})
-            return
         if path == "/api/setup/ai":
             if AI_SETUP_STATE.is_file():
                 try:
@@ -252,6 +234,24 @@ class Handler(BaseHTTPRequestHandler):
             job_id = path.split("/")[-2]
             if JOBS.cancel(job_id): self._send(200, {"cancelled": True, "job_id": job_id})
             else: self._send(409, {"error": "Job cannot be cancelled because it is no longer active."})
+            return
+        if path == "/api/creator/run":
+            try:
+                body = self._json_body()
+                if not isinstance(body, dict):
+                    raise ValueError("Request JSON must be an object.")
+                skill = str(body.get("skill", "")).strip()
+                skill_input = body.get("input", "")
+                if not isinstance(skill_input, str):
+                    raise ValueError("Skill input must be text.")
+                result = run_creator_skill(skill, skill_input, model=body.get("model"))
+                self._send(200, result)
+            except (ValueError, json.JSONDecodeError) as exc:
+                self._send(400, {"error": f"Invalid creator-skill request: {exc}"})
+            except RuntimeError as exc:
+                self._send(503, {"error": str(exc)})
+            except Exception as exc:
+                self._send(500, {"error": f"Creator skill failed: {exc}"})
             return
         if path == "/api/setup/ai":
             global AI_SETUP_PROCESS

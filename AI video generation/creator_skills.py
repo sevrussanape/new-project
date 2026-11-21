@@ -369,6 +369,59 @@ def _hook_formula(title: str) -> tuple[str, int]:
             best_name, best_hits = name, hits
     return best_name, best_hits
 
+HOOK_FILLER = {"basically", "actually", "literally", "just", "really", "very", "so", "kind", "sort", "like",
+               "guys", "hey", "welcome", "today", "video", "subscribe", "channel"}
+HOOK_VAGUE = {"amazing", "incredible", "insane", "crazy", "huge", "massive", "game", "changer", "secret",
+              "powerful", "ultimate", "best", "revolutionary", "mind", "blowing", "unbelievable"}
+HOOK_CONCRETE = re.compile(r"\b(\d[\d,.]*\s?(%|k|m|x|s|m|h)?|\$\d|\d+\s?(second|minute|hour|day|week|month|year)s?)\b", re.I)
+HOOK_YOU = re.compile(r"\b(you|your|you're|youre|yourself)\b", re.I)
+HOOK_STAKE = re.compile(r"\b(lose|lost|wasting|waste|quit|fail|broke|cost|risk|before|stop|never|die|dying|dead)\b", re.I)
+HOOK_CURIOSITY = re.compile(r"\b(why|how|what|which|until|before|but|nobody|almost|except|reason|actually)\b", re.I)
+
+
+def _score_hook(hook: str) -> dict[str, Any]:
+    """Score specificity, address, stakes, curiosity and brevity as editorial diagnostics."""
+    words = re.findall(r"[a-z0-9'%$.]+", hook.lower())
+    if not words:
+        return {"hook": hook, "score": 0, "band": "WEAK", "properties": {}, "formula": "Unclassified",
+                "weakest_property": "specificity", "suggested_fix": "Write a complete spoken opening."}
+    concrete_count = len(HOOK_CONCRETE.findall(hook))
+    vague_count = sum(1 for word in words if word in HOOK_VAGUE)
+    filler_count = sum(1 for word in words if word in HOOK_FILLER)
+    uppercase_names = sum(1 for word in hook.split()[1:] if word[:1].isupper())
+    specificity = max(0, min(100, 34 + concrete_count * 22 - vague_count * 16 - filler_count * 5 + min(18, 6 * uppercase_names)))
+    you_count = len(HOOK_YOU.findall(hook))
+    address = max(0, min(100, 26 + you_count * 20 + (30 if HOOK_YOU.search(" ".join(hook.split()[:6])) else 0)))
+    stake_count = len(HOOK_STAKE.findall(hook))
+    stakes = max(0, min(100, 22 + stake_count * 26 + (14 if HOOK_CONCRETE.search(hook) else 0)))
+    curiosity_count = len(HOOK_CURIOSITY.findall(hook))
+    curiosity = max(0, min(100, 24 + curiosity_count * 17 + (18 if hook.strip().endswith("?") else 0)
+                           - (18 if re.search(r"\b(because|so that|which means)\b", hook, re.I) else 0)))
+    count = len(words)
+    if 9 <= count <= 24:
+        brevity = 100
+    elif count < 9:
+        brevity = max(30, 100 - (9 - count) * 11)
+    else:
+        brevity = max(10, 100 - (count - 24) * 7)
+    properties = {"specificity": specificity, "direct_address": address, "stakes": stakes,
+                  "curiosity": curiosity, "brevity": brevity}
+    score = round(0.6 * (sum(properties.values()) / len(properties)) + 0.4 * min(properties.values()))
+    formula, hits = _hook_formula(hook)
+    weakest = min(properties, key=properties.get)
+    fixes = {
+        "specificity": "replace an adjective with a verifiable number, name or date",
+        "direct_address": "address the intended viewer in the first six words",
+        "stakes": "make the real consequence clear",
+        "curiosity": "leave an honest unanswered question",
+        "brevity": "tighten toward 9–24 spoken words",
+    }
+    return {"hook": hook.strip(), "score": score,
+            "band": "STRONG" if score >= 72 else "WORKABLE" if score >= 55 else "WEAK",
+            "properties": properties, "formula": formula, "formula_matches": hits,
+            "weakest_property": weakest, "suggested_fix": fixes[weakest]}
+
+
 def _title_formula(title: str) -> str:
     return _hook_formula(title)[0]
 

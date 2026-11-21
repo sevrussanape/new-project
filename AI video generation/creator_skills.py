@@ -16,7 +16,7 @@ from collections import defaultdict
 from typing import Any
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
-DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3:4b")
+DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3.5:4b")
 MAX_SKILL_INPUT = 100_000
 
 SKILLS: list[dict[str, str]] = [
@@ -76,8 +76,8 @@ TIMESTAMP_LINE = re.compile(
 
 
 def list_skills() -> dict[str, Any]:
-    return {"skills": SKILLS, "model": DEFAULT_MODEL, "recommended_model": "qwen3:4b",
-            "recommended_model_note": "For this 4 GB VRAM / 32 GB RAM class of PC, try qwen3:4b Q4 first; it may partially offload to system RAM. Close GPU-heavy apps and test response speed."}
+    return {"skills": SKILLS, "model": DEFAULT_MODEL, "recommended_model": "qwen3.5:4b",
+            "recommended_model_note": "Best quality starting point in this app: qwen3.5:4b (about 3.4 GB in Ollama). On a 4 GB GPU it may offload layers to system RAM; use qwen3.5:2b for a lighter/faster fallback. Close GPU-heavy apps and test response speed."}
 
 
 def _ollama_generate(prompt: str, *, model: str | None = None, timeout: int = 300) -> str:
@@ -110,7 +110,7 @@ def _ollama_generate(prompt: str, *, model: str | None = None, timeout: int = 30
     except urllib.error.URLError as exc:
         raise RuntimeError(
             "Local Ollama is not reachable. Start Ollama, download a local model, "
-            "and set OLLAMA_MODEL if needed. Suggested model for this hardware: qwen3:4b."
+            "and set OLLAMA_MODEL if needed. Suggested model for this hardware: qwen3.5:4b."
         ) from exc
     except (TimeoutError, json.JSONDecodeError) as exc:
         raise RuntimeError("Ollama timed out or returned invalid JSON. Try a smaller local model.") from exc
@@ -424,7 +424,7 @@ AI_PROMPTS: dict[str, str] = {
     "yt-comment": """Triage each supplied comment into Questions, Corrections, Praise or Bait, and count each category. Draft replies only for useful questions, valid corrections and a few specific praise comments. Keep each reply under 30 words, answer the actual question first, do not argue unverified facts, and do not reply to bait. Suggest exactly one comment to pin and explain why. Never publish replies.""",
     "yt-package": """Create ten distinct YouTube title + thumbnail pairs for the supplied idea and audience. Make each title specific and truthful; avoid fake urgency, unsupported numbers and vague hype. The thumbnail must add a different piece of information rather than repeat the title and should use at most three short words. Rank the top three and explain each tradeoff. Include a thumbnail visual brief for the strongest pair. Apply approximate 40-character mobile and 60-character desktop display checks; these are heuristics, not guaranteed truncation points. Do not claim CTR predictions.""",
     "yt-plan": """Build a realistic weekly or monthly YouTube content plan based on the creator's actual available hours and work already in progress. Prefer one anchor video, one lower-effort upload and up to three Shorts repurposed from the anchor when capacity allows. Return a table with day, format, working title, viewer promise, existing assets, and estimated work hours. Total the hours and state what to drop first if the week becomes busy. Do not invent the best upload day; use analytics only if supplied.""",
-    "yt-script": """Write a YouTube script that earns the click and sustains attention. First produce FIVE substantially different opening hooks using varied approaches (specific result, counter-intuition, problem, experiment, open loop). Give each a heuristic score out of 100 with a short reason; scores are editorial estimates, not predicted retention. Pick the strongest two. Then write the script beat by beat. The first 15 seconds must confirm the title promise, open a useful question and demonstrate a payoff. Mark every beat with [ON SCREEN: ...]. Avoid long intros, filler, fake claims and unverified statistics. Deliver the promised payoff and use one closing ask. Estimate runtime at 150 spoken words/minute.""",
+    "yt-script": """Write a YouTube script that earns the click and sustains attention. Use the 21 hook approaches below as a formula library; choose five that suit this specific idea and do not force a weak fit. For each hook, name its formula, write the exact opening, state the proof required, and give a heuristic score out of 100. These scores are editorial estimates, not predicted retention. The first 15 seconds must confirm the title promise, open a question the viewer cannot close and prove the payoff exists. No fabricated statistics, named results, dates or sources. Then choose the two best hooks and write the spoken script beat by beat. Mark every beat with [ON SCREEN: ...]. Include the turn, body, promised payoff and one closing ask. Estimate runtime at 150 spoken words/minute. Formula library: The Statistic (verifiable number then consequence); Someone Else’s Result (named outcome then mechanism); The Mistake (a common checkable error); Contrarian Flip (accepted advice challenged with evidence); The Reveal (show a specific artifact early); The Superlative (best/worst/fastest with comparison); The Clock (bounded truthful payoff); I Tried It (first-person experiment with real stakes); The Question (viewer’s real search/comment question); Before and After (visual contrast); The Teardown (break down a real example with scope); The Stack (combine named tools for one outcome); The Warning (real cost the viewer risks); The List (exact counted set); The Receipt (show real evidence first); The Insider (truthful system insight, no fake access); The Impossible Claim (surprising claim proven immediately); The Comparison (two named options and a clear winner); The Origin (show where a real process/result began); The Deadline (real dated change); The Direct Address (name a narrow viewer). Use each formula’s failure condition as a guardrail: evidence for numbers/results, show the artifact when promised, keep the time promise, use a real question, do not claim insider access, and never exaggerate deadlines.""",
     "yt-seo": """Create a useful YouTube SEO pack for the real viewer query. Write a two-line opening description that says exactly what the viewer gets using the supplied target phrase naturally. Add resource links only when supplied, then a useful longer description, chapters only if supplied, and up to 15 relevant tags for disambiguation. End with three target search queries and check whether the title and first two description lines contain their main terms. Do not invent search-volume numbers or promise rankings; explain that tags are a weaker discovery signal than viewer satisfaction and packaging.""",
     "yt-shorts": """Find up to five self-contained Shorts inside the supplied timestamped transcript. Each candidate must be about 20–55 seconds, start with enough context to stand alone, contain a clear turn/payoff and end on a complete line. For each provide start/end timecodes, exact opening words, why it works alone, a NEW hook, different first-two-second on-screen text, a suggested loop point and a vertical crop note. Do not invent transcript quotes or timestamps. If timestamps are not present or too few suitable spans exist, say so rather than guessing.""",
 }

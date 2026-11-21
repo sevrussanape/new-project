@@ -14,10 +14,10 @@ this repository is independently implemented.
 | yt-chapters | Creates chapter timestamps and validates YouTube's 00:00 start, three-chapter minimum and 10-second minimum per chapter. | SRT, VTT or Whisper JSON |
 | yt-comment | Sorts comments into questions, corrections, praise and bait; drafts short replies and suggests one pinned comment. | Comments and optional creator voice/context |
 | yt-edit | Produces an edit decision list for dead air, filler-only cues and likely repeated starts. | SRT, VTT or Whisper JSON |
-| yt-package | Generates ten title/thumbnail pairings, ranks three and checks for overlap, vague wording and length. | Topic, audience, promise and evidence |
+| yt-package | Generates ten title/thumbnail pairings, then ranks and lints them locally for length, vague wording, repeated words and thumbnail text length. | Topic, audience, promise and evidence |
 | yt-plan | Plans a realistic week or month using actual available hours and work already in progress. | Capacity, unfinished work, audience and formats |
 | yt-retention | Reports opening loss, steep drops and average mid-video decline from a retention export. | YouTube Studio CSV; duration if the position axis is percent |
-| yt-script | Creates five hook approaches, editorial hook scores and a beat-by-beat script with on-screen directions. | Idea, viewer, duration, evidence and voice |
+| yt-script | Chooses five of 21 hook formulas, scores specificity/address/stakes/curiosity/brevity locally, then builds a beat-by-beat script with on-screen directions. | Idea, viewer, duration, evidence and voice |
 | yt-seo | Creates a search-aligned description, focused tags and target query checks. | Topic, viewer, title, target keywords and links |
 | yt-shorts | Finds self-contained 20–55 second excerpts and proposes fresh hooks and vertical framing. | Timestamped transcript |
 | yt-viral | Ranks candidate videos by views divided by their own channel's median views. | JSON video records; four or more videos per channel |
@@ -60,7 +60,7 @@ artifact is about 3.4 GB before runtime/context overhead. On a 4 GB GPU, some
 layers may need to be offloaded to system RAM; close GPU-heavy applications
 and start with short inputs. For a lighter fallback, install qwen3.5:2b (about
 2.7 GB). Exact speed and memory use depend on Ollama, context length and other
-GPU workloads. Model details: https://ollama.com/library/qwen3.5.
+GPU workloads. Ollama requests use a 4,096-token context by default to reduce memory pressure. Model details: https://ollama.com/library/qwen3.5.
 
 Once Ollama and the model are installed, prompts are processed locally. The
 first Ollama model download requires internet access; the skills do not call

@@ -80,6 +80,7 @@ Today we build this.
             {"channel": "A", "title": "Two", "views": 110},
             {"channel": "A", "title": "Three", "views": 90},
             {"channel": "A", "title": "Four", "views": 1000, "url": "https://example.com"},
+            {"channel": "A", "title": "Five", "views": 100},
         ]
         result = skills.run_viral(json.dumps(videos), minimum_multiple=1.5)
         self.assertEqual(len(result["outliers"]), 1)

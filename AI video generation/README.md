@@ -79,10 +79,10 @@ fallback, and the skills never publish, upload, reply to comments or modify sour
 Install Ollama separately, then download the recommended local language model once:
 
 ```bat
-ollama pull qwen3:4b
+ollama pull qwen3.5:4b
 ```
 
-The default creator model is qwen3:4b; set OLLAMA_MODEL before launching Studio to
+The default creator model is qwen3.5:4b; set OLLAMA_MODEL before launching Studio to
 use another model. Qwen3 4B is a starting recommendation for a 4 GB VRAM / 32 GB RAM
 class of PC, not a promise that all model layers will fit in dedicated VRAM. Ollama may
 offload layers to system RAM; close GPU-heavy apps or use a smaller model if necessary.

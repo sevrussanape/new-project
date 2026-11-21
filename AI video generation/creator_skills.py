@@ -16,7 +16,7 @@ from collections import defaultdict
 from typing import Any
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
-DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2:1b")
+DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3:4b")
 MAX_SKILL_INPUT = 100_000
 
 SKILLS: list[dict[str, str]] = [

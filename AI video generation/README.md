@@ -170,7 +170,8 @@ This uses Pillow and imageio-ffmpeg to animate a still image with a deterministi
 |---|:---:|---|
 | `/api/health` | GET | Application status and hardware report |
 | `/api/creator/skills` | GET | List YouTube creator workflows and local model guidance |
-| `/api/creator/run` | POST | Run one local creator workflow (Ollama or deterministic Python) |\n| `/api/setup/ai` | GET/POST | Read installer status / start AI runtime and model installation |
+| `/api/creator/run` | POST | Run one local creator workflow (Ollama or deterministic Python) |
+| `/api/setup/ai` | GET/POST | Read installer status / start AI runtime and model installation |
 | `/api/hardware` | GET | Raw hardware inventory |
 | `/api/models` | GET | Model recommendation, runtime gate and fallback |
 | `/api/config` | GET | UI/API limits and modes |
@@ -194,7 +195,8 @@ AI video generation/
 ├── web/                # Browser interface
 ├── tests/              # Automated regression tests
 ├── docs/               # Architecture and model-selection documentation
-├── studio.py           # Local HTTP server and API\n├── ai_setup.py         # Explicit CUDA runtime + LTX model installer
+├── studio.py           # Local HTTP server and API
+├── ai_setup.py         # Explicit CUDA runtime + LTX model installer
 ├── hardware_scanner.py # Side-effect-free hardware inventory
 ├── model_selector.py   # Integrated-model eligibility and recommendation
 ├── channel_pipeline.py # Local channel workflow CLI

@@ -55,7 +55,7 @@ def create_script_package(topic: str, content_type: str, duration_seconds: int,
     duration = resolve_duration("Custom", duration_seconds)
     if not 2 <= scene_count <= 450:
         raise ValueError("Scene count is outside supported bounds.")
-    model = model or os.environ.get("OLLAMA_MODEL", "llama3.2:1b")
+    model = model or os.environ.get("OLLAMA_MODEL", "qwen3:4b")
     base = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
     seconds = max(90, duration_seconds * 2)
     prompt = f"""

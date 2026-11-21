@@ -81,6 +81,8 @@ def list_skills() -> dict[str, Any]:
 
 
 def _ollama_generate(prompt: str, *, model: str | None = None, timeout: int = 300, json_mode: bool = False) -> str:
+    if len(prompt) > 12_000:
+        raise ValueError("This local model is configured for a 4,096-token context. Split long transcripts/comments into smaller parts and run the skill again.")
     selected = (model or DEFAULT_MODEL).strip()
     if not re.fullmatch(r"[A-Za-z0-9._:/-]{1,120}", selected):
         raise ValueError("Invalid local Ollama model name.")
@@ -292,10 +294,10 @@ def run_retention(source: str, duration_seconds: float | None = None) -> dict[st
     rows = []
     for row in csv.reader(source.splitlines()):
         numbers = []
-        for cell in row:
+        for index, cell in enumerate(row):
             cleaned = cell.strip().replace("%", "").replace(",", "")
             try:
-                numbers.append(float(cleaned))
+                numbers.append(_parse_timestamp(cleaned) if index == 0 and ":" in cleaned else float(cleaned))
             except ValueError:
                 pass
         if len(numbers) >= 2:

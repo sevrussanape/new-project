@@ -40,7 +40,7 @@ SKILLS: list[dict[str, str]] = [
      "hint": "Include available hours, posting capacity, videos already half-made, audience and preferred formats."},
     {"id": "yt-retention", "name": "Retention analyzer", "group": "Analytics", "mode": "python",
      "description": "Read a YouTube Studio retention CSV and identify opening loss, steep drops and steady mid-video decline.",
-     "hint": "Paste CSV with position and percentage-watching columns. Add duration_seconds if the position column is 0–100 percent."},
+     "hint": "Paste a CSV with position and percentage-watching columns. For JSON input, include csv, duration_seconds and position_unit (seconds or percent) when the axis is ambiguous."},
     {"id": "yt-script", "name": "Hook + script writer", "group": "Creation", "mode": "local-ai",
      "description": "Create five hook approaches, score them heuristically and draft a beat-by-beat spoken script with on-screen direction.",
      "hint": "Enter idea, target viewer, format, target duration, key facts/sources and channel voice."},

@@ -190,7 +190,6 @@ This uses Pillow and imageio-ffmpeg to animate a still image with a deterministi
 ```text
 AI video generation/
 ├── engine/             # Runtime adapter, queue, duration and production pipeline
-├── creator_skills/     # Upstream MIT attribution for adapted skill workflows
 ├── creator_skills.py   # 11 local-first YouTube creator skill handlers
 ├── web/                # Browser interface
 ├── tests/              # Automated regression tests

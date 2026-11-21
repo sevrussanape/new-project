@@ -694,8 +694,6 @@ def run_skill(skill: str, source: str, *, model: str | None = None) -> dict[str,
                 "model": model or DEFAULT_MODEL, "result": "\n".join(lines), "data": {"packages": checked}}
     elif skill == "yt-comment":
         prompt = AI_PROMPTS[skill] + "\n\nComments and optional creator voice:\n" + (json.dumps(parsed, ensure_ascii=False, indent=2) if not isinstance(parsed, str) else parsed)
-    elif skill == "yt-package":
-        prompt = AI_PROMPTS[skill] + "\n\nVideo brief:\n" + (json.dumps(parsed, ensure_ascii=False, indent=2) if not isinstance(parsed, str) else parsed)
     elif skill == "yt-plan":
         prompt = AI_PROMPTS[skill] + "\n\nCreator capacity and content inventory:\n" + (json.dumps(parsed, ensure_ascii=False, indent=2) if not isinstance(parsed, str) else parsed)
     elif skill == "yt-seo":

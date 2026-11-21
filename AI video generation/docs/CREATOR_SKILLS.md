@@ -38,12 +38,12 @@ API endpoints:
 
 Language tasks call the local Ollama HTTP endpoint at OLLAMA_URL; there is no
 hosted LLM fallback and no paid API key. Deterministic transcript and analytics
-workflows run in Python and do not need an LLM. The default model is qwen3:4b.
+workflows run in Python and do not need an LLM. The default model is qwen3.5:4b.
 
 Install Ollama separately, then download the model once:
 
 ~~~bash
-ollama pull qwen3:4b
+ollama pull qwen3.5:4b
 ~~~
 
 The project cannot silently install Ollama itself. To use another installed
@@ -51,7 +51,7 @@ model, set OLLAMA_MODEL before starting Studio. For example, in Windows
 Command Prompt:
 
 ~~~bat
-set OLLAMA_MODEL=qwen3:4b
+set OLLAMA_MODEL=qwen3.5:4b
 ONE_CLICK.bat start
 ~~~
 

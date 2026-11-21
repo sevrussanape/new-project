@@ -72,8 +72,9 @@ channel audit, chapters, comment triage, edit decision lists, title/thumbnail pa
 content planning, retention analysis, hook/script writing, SEO, Shorts repurposing and
 relative-view viral outlier research.
 
-Language tasks use the configured local Ollama model only. Transcript and analytics
-checks run in Python. There is no Gemini, OpenAI, ElevenLabs or other hosted inference
+Language tasks use the configured local Ollama model only. Transcript, analytics, hook scoring
+and title/thumbnail lint checks run in Python. The script workflow includes 21 hook formulas and a
+five-factor editorial scorecard (specificity, address, stakes, curiosity and brevity). There is no Gemini, OpenAI, ElevenLabs or other hosted inference
 fallback, and the skills never publish, upload, reply to comments or modify source media.
 
 Install Ollama separately, then download the recommended local language model once:
@@ -84,7 +85,7 @@ ollama pull qwen3.5:4b
 
 The default creator model is qwen3.5:4b; set OLLAMA_MODEL before launching Studio to
 use another model. Qwen3.5 4B is the quality-first starting point. Its Ollama download is about 3.4 GB before runtime/context overhead, so a 4 GB GPU may need CPU/RAM offload. Close GPU-heavy apps and start with short inputs. For a lighter fallback, use qwen3.5:2b (about 2.7 GB).
-The model weights must be downloaded once before offline use.
+The model weights must be downloaded once before offline use. Creator-skill requests use a 4,096-token context by default to reduce memory pressure.
 
 Use the **YouTube Creator Skills** section in the browser. Paste the evidence requested
 for the selected skill: transcripts for chapters/edit/Shorts, a CSV export for retention,
